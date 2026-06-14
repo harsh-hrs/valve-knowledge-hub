@@ -75,6 +75,61 @@ const VALVES = [
     typicalApplications: ['Pump discharge manifolds', 'Sewage mains backflow prevention', 'Cooling loops safety'],
     color: 'from-rose-600 to-pink-500',
     spec: 'Backflow Prevention'
+  },
+  {
+    id: 'diaphragm-valve',
+    name: 'Weir Diaphragm Valve',
+    category: 'Linear',
+    subcategory: 'Diaphragm',
+    description: 'Flexible membrane seals onto a weir, fully isolating fluid from the working parts.',
+    advantages: ['Zero stem leakage', 'Handles slurries and corrosives', 'Crevice-free & sterilisable'],
+    typicalApplications: ['Pharma & biotech sterile lines', 'Corrosive chemical dosing', 'Ultra-pure water'],
+    color: 'from-green-600 to-emerald-500',
+    spec: 'Contamination-Free Sealing'
+  },
+  {
+    id: 'plug-valve-lubricated',
+    name: 'Lubricated Plug Valve',
+    category: 'Rotary',
+    subcategory: 'Plug',
+    description: 'Tapered quarter-turn plug sealed by an injected lubricant film across full contact.',
+    advantages: ['Fast quarter-turn shutoff', 'Excellent in dirty/gas service', 'Sealant frees a stuck plug'],
+    typicalApplications: ['Gas gathering manifolds', 'Viscous hydrocarbon lines', 'Pipeline diverting'],
+    color: 'from-yellow-600 to-amber-500',
+    spec: 'Full-Contact Sealing'
+  },
+  {
+    id: 'needle-valve',
+    name: 'Needle Valve',
+    category: 'Linear',
+    subcategory: 'Needle',
+    description: 'Fine-tapered needle on a fine-pitch thread for precise low-flow metering.',
+    advantages: ['Very fine low-flow control', 'Compact high-pressure body', 'Metering plus shutoff'],
+    typicalApplications: ['Instrument isolation', 'Sample take-off lines', 'Calibration rigs'],
+    color: 'from-sky-600 to-cyan-500',
+    spec: 'Precision Metering'
+  },
+  {
+    id: 'safety-valve-spring',
+    name: 'Spring-Loaded Safety Valve',
+    category: 'Self-Actuated',
+    subcategory: 'Relief',
+    description: 'Self-acting overpressure relief that pops open at a calibrated set pressure.',
+    advantages: ['Fully self-acting failsafe', 'Fast pop-action capacity', 'Adjustable set pressure'],
+    typicalApplications: ['Steam boiler protection', 'Pressure vessel relief', 'Compressor discharge'],
+    color: 'from-red-600 to-orange-500',
+    spec: 'Overpressure Protection'
+  },
+  {
+    id: 'air-release-valve',
+    name: 'Automatic Air Release Valve',
+    category: 'Self-Actuated',
+    subcategory: 'Air Release',
+    description: 'Float-operated valve that continuously vents trapped air from pipeline high points.',
+    advantages: ['Automatic under line pressure', 'Prevents air-binding', 'Self-cleaning float'],
+    typicalApplications: ['Water transmission high points', 'Pump station headers', 'Irrigation mains'],
+    color: 'from-teal-600 to-cyan-500',
+    spec: 'Air Venting'
   }
 ];
 

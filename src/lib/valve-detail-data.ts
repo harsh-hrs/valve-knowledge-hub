@@ -342,6 +342,301 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
         { parameter: 'Installation Orientation', thisValveValue: 'Horizontal or Vertical upward flow', alternativeValveName: 'Lift Check Valve', alternativeValveValue: 'Strictly Horizontal only' }
       ]
     }
+  },
+  'diaphragm-valve': {
+    id: 'diaphragm-valve',
+    name: 'Weir Diaphragm Valve',
+    category: 'Isolation',
+    subcategory: 'Diaphragm',
+    overview: 'A Diaphragm Valve uses a flexible elastomeric or PTFE membrane that is pressed down onto a raised weir cast into the body to throttle or shut off flow. Because the diaphragm completely isolates the working parts (stem, bonnet, compressor) from the process fluid, there are no leak paths to atmosphere and no crevices to trap product. This makes it the valve of choice for corrosive, abrasive, sanitary, and ultra-pure services where contamination or stem leakage cannot be tolerated.',
+    workingPrinciple: 'The handwheel drives a non-wetted stem, which lowers a compressor saddle onto the back of the diaphragm. The diaphragm flexes downward until it seals against the weir, blocking the flow path. Because the seal is made by the flexible membrane rather than tight metal clearances, the valve tolerates suspended solids and offers good throttling for low-pressure service. The body is typically lined with rubber, glass, or PFA for chemical resistance.',
+    applications: [
+      'Pharmaceutical and biotech sterile process lines',
+      'Corrosive acid and caustic chemical dosing',
+      'Slurry, pulp and abrasive media handling',
+      'Food, beverage and ultra-pure water systems'
+    ],
+    advantages: [
+      'Complete isolation of fluid from stem and bonnet (zero fugitive emissions)',
+      'Excellent for slurries, abrasives and corrosive media',
+      'No crevices — fully drainable and easy to sterilise (CIP/SIP)'
+    ],
+    limitations: [
+      'Limited to relatively low pressure and temperature (diaphragm-bound)',
+      'Diaphragm is a wear item requiring periodic replacement',
+      'Not bi-directional pressure rated like metal-seated valves'
+    ],
+    components: [
+      { name: 'Flexible Diaphragm', function: 'Acts as both the closure member and the primary seal, flexing onto the weir.', typicalMaterials: ['EPDM', 'PTFE-faced EPDM', 'Butyl Rubber'] },
+      { name: 'Weir', function: 'A raised dam in the body that the diaphragm seals against, reducing travel.', typicalMaterials: ['Rubber-lined Cast Iron', 'PFA-lined Steel', 'CF8M'] },
+      { name: 'Compressor', function: 'Spreads stem thrust evenly across the diaphragm back.', typicalMaterials: ['Aluminium', 'Ductile Iron'] },
+      { name: 'Stem', function: 'Non-wetted stem transmitting handwheel motion to the compressor.', typicalMaterials: ['SS304', 'SS316'] }
+    ],
+    materials: {
+      body: ['Rubber-Lined Cast Iron', 'PFA/PTFE-Lined Carbon Steel', 'ASTM A351 CF8M', 'Glass-Lined Steel'],
+      trim: ['EPDM Diaphragm', 'PTFE-faced Diaphragm', 'Aluminium Compressor'],
+      seals: ['Integral Diaphragm Seal', 'EPDM Bonnet Gasket']
+    },
+    standards: [
+      'BS EN 13397 (Metallic Diaphragm Valves)',
+      'ASME BPE (Bioprocessing Equipment — sanitary service)',
+      'API 598 (Valve Inspection and Testing)',
+      'ISO 16138 (Industrial Valves — Diaphragm Valves)'
+    ],
+    maintenance: [
+      { interval: 'Per Cycle Count', action: 'Replace the diaphragm at the manufacturer-rated cycle life.', rationale: 'Diaphragm fatigue is the primary failure mode; proactive replacement prevents rupture.' },
+      { interval: 'Annually', action: 'Inspect the weir and body lining for wear or chemical attack.', rationale: 'A scored weir or damaged lining prevents tight shutoff and risks body corrosion.' },
+      { interval: 'After Sterilisation Cycles', action: 'Verify diaphragm elasticity and torque settings.', rationale: 'Repeated SIP/CIP thermal cycling hardens elastomers, reducing seal integrity.' }
+    ],
+    failureModes: [
+      { mode: 'Diaphragm Rupture', cause: 'Fatigue from cycling, over-tightening, or chemical/thermal degradation.', prevention: 'Replace on schedule, set correct closing torque, and select the right diaphragm compound.' },
+      { mode: 'Weir Erosion', cause: 'Abrasive slurry gradually wears the sealing edge of the weir.', prevention: 'Use hard linings and limit flow velocity in abrasive service.' },
+      { mode: 'Cold Flow / Creep (PTFE)', cause: 'PTFE diaphragms cold-flow under sustained load, losing seal.', prevention: 'Use backed PTFE diaphragms and re-torque after initial bedding-in.' }
+    ],
+    comparison: {
+      summary: 'Compared to Ball Valves, Diaphragm Valves provide unmatched purity and corrosion isolation but are far more limited in pressure and temperature.',
+      metrics: [
+        { parameter: 'Fluid Purity / Containment', thisValveValue: 'Excellent (fully isolated, crevice-free)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Moderate (body cavity traps fluid)' },
+        { parameter: 'Pressure / Temp Rating', thisValveValue: 'Low (diaphragm-limited)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'Very High (metal-to-metal)' },
+        { parameter: 'Slurry / Abrasive Handling', thisValveValue: 'Excellent (no tight clearances)', alternativeValveName: 'Standard Globe Valve', alternativeValveValue: 'Poor (trim erosion)' }
+      ]
+    }
+  },
+  'plug-valve-lubricated': {
+    id: 'plug-valve-lubricated',
+    name: 'Lubricated Plug Valve',
+    category: 'Isolation',
+    subcategory: 'Plug',
+    overview: 'A Lubricated Plug Valve is a quarter-turn rotary valve using a tapered (or cylindrical) plug with a through-port that rotates within a matching body bore. A sealant injected between the plug and body forms a hydraulic film that both seals and lubricates the large contact area, giving low operating torque and excellent shutoff. Plug valves are compact, fast-acting, and well suited to dirty, viscous, and gas service where their full contact sealing resists leakage.',
+    workingPrinciple: 'A wrench or gear operator rotates the plug 90 degrees. When the through-port aligns with the body bore, fluid flows straight through; rotating the solid face of the plug across the bore shuts it off. Sealant injected through a fitting at the top is forced into grooves around the plug, lifting it slightly to reduce friction and renewing the seal film along the entire tapered contact surface.',
+    applications: [
+      'Natural gas gathering and distribution manifolds',
+      'Refinery and petrochemical block service',
+      'Viscous, tarry, or slurry hydrocarbon lines',
+      'Pipeline diverting (multi-port) applications'
+    ],
+    advantages: [
+      'Compact body with very fast quarter-turn operation',
+      'Full plug-to-body contact gives excellent tight shutoff',
+      'Sealant injection renews sealing and frees a stuck plug'
+    ],
+    limitations: [
+      'Requires periodic sealant injection and maintenance',
+      'Higher operating torque than ball valves in large sizes',
+      'Sealant can contaminate process fluid if incompatible'
+    ],
+    components: [
+      { name: 'Tapered Plug', function: 'Rotating closure with a through-port that aligns or blocks the bore.', typicalMaterials: ['Carbon Steel + ENP', 'CF8M', 'Nitrided Alloy'] },
+      { name: 'Body', function: 'Houses the tapered seat bore and end connections.', typicalMaterials: ['ASTM A216 WCB', 'ASTM A105', 'CF8M'] },
+      { name: 'Sealant System', function: 'Injects lubricant film between plug and body to seal and reduce torque.', typicalMaterials: ['Grease-based Sealant', 'PTFE Compound'] },
+      { name: 'Bottom Cap / Adjuster', function: 'Retains the plug and sets plug-to-body clearance.', typicalMaterials: ['Forged Steel', 'Stainless Steel'] }
+    ],
+    materials: {
+      body: ['ASTM A216 WCB', 'ASTM A105 (Forged)', 'ASTM A351 CF8M'],
+      trim: ['ENP Carbon Steel Plug', 'Nitrided Plug', 'CF8M Plug'],
+      seals: ['Injected Sealant Film', 'PTFE Sleeve (non-lubricated variant)', 'Viton O-Rings']
+    },
+    standards: [
+      'API 599 (Metal Plug Valves — Flanged, Threaded and Welding Ends)',
+      'API 6D (Pipeline Valves)',
+      'ASME B16.34 (Valves — Flanged, Threaded, and Welding End)',
+      'API 598 (Valve Inspection and Testing)'
+    ],
+    maintenance: [
+      { interval: 'Monthly / Quarterly', action: 'Inject fresh sealant and operate the plug through a full cycle.', rationale: 'Maintains the sealing film and prevents the plug from seizing in the body.' },
+      { interval: 'Annually', action: 'Check sealant system check-valves and fittings for blockage.', rationale: 'A blocked injection path prevents reseating the plug and renewing the seal.' },
+      { interval: 'Overhaul Shutdown', action: 'Disassemble, clean old hardened sealant, and re-lap the plug taper.', rationale: 'Restores a uniform contact surface for low-torque, leak-tight operation.' }
+    ],
+    failureModes: [
+      { mode: 'Plug Seizure', cause: 'Sealant dries out or is not replenished, galling the plug to the body taper.', prevention: 'Adhere to the sealant injection schedule and use the correct sealant grade.' },
+      { mode: 'Seat Leakage', cause: 'Worn or scored plug taper, or loss of sealant film.', prevention: 'Re-inject sealant; re-lap or replace the plug at overhaul.' },
+      { mode: 'Sealant Contamination', cause: 'Incompatible sealant migrates into the process stream.', prevention: 'Select process-compatible sealant or use a non-lubricated sleeved plug valve.' }
+    ],
+    comparison: {
+      summary: 'Compared to Floating Ball Valves, Lubricated Plug Valves offer superior tight shutoff in dirty and gas service but demand ongoing sealant maintenance.',
+      metrics: [
+        { parameter: 'Shutoff in Dirty/Gas Service', thisValveValue: 'Excellent (full-contact sealing)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Good (soft seats, but seat wear)' },
+        { parameter: 'Maintenance Demand', thisValveValue: 'High (periodic sealant injection)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Low (maintenance-free seats)' },
+        { parameter: 'Operating Torque (large bore)', thisValveValue: 'Moderate–High', alternativeValveName: 'Triple Offset Butterfly Valve', alternativeValveValue: 'Low (balanced rotary)' }
+      ]
+    }
+  },
+  'needle-valve': {
+    id: 'needle-valve',
+    name: 'Needle Valve',
+    category: 'Control',
+    subcategory: 'Needle',
+    overview: 'A Needle Valve is a precision throttling valve using a long, slender, sharply tapered plug (the "needle") that advances into a small matched seat orifice via a fine-pitch threaded stem. The many turns required for a tiny change in orifice area give exceptionally fine, repeatable flow control of low flow rates. Needle valves are the workhorse of instrumentation, sampling, calibration, and metering systems where precise adjustment of small flows or pressures is essential.',
+    workingPrinciple: 'Rotating the knurled handle turns a fine-thread stem that drives the tapered needle linearly toward or away from the seat. Because the thread pitch is fine and the needle taper is gradual, a full handle turn changes the annular flow area only slightly, allowing micro-adjustment. Fully seated, the needle point closes the orifice for positive shutoff; backed off, it meters a precisely controlled trickle of flow.',
+    applications: [
+      'Instrument and gauge isolation / snubbing',
+      'Sample and analyser take-off lines',
+      'Calibration rigs and laboratory flow metering',
+      'Hydraulic and pneumatic bleed / pilot lines'
+    ],
+    advantages: [
+      'Very fine, repeatable control of small flow rates',
+      'Compact forged construction rated for high pressure',
+      'Positive tight shutoff plus metering in one device'
+    ],
+    limitations: [
+      'Only suitable for low flow rates (small orifice)',
+      'High pressure drop — not for bulk flow',
+      'Needle tip and seat are easily damaged by particulates'
+    ],
+    components: [
+      { name: 'Tapered Needle', function: 'Slender tapered plug that meters flow with high precision.', typicalMaterials: ['17-4PH Stainless', 'Hardened 316 SS'] },
+      { name: 'Fine-Thread Stem', function: 'Converts many handle turns into small, precise needle travel.', typicalMaterials: ['SS316', 'Monel'] },
+      { name: 'Seat Orifice', function: 'Small honed bore the needle closes against.', typicalMaterials: ['Hardened Stainless Steel', 'Stellite-faced'] },
+      { name: 'Packing', function: 'Seals the stem penetration against high-pressure leakage.', typicalMaterials: ['PTFE', 'Grafoil'] }
+    ],
+    materials: {
+      body: ['Forged 316 Stainless Steel', 'Monel 400', 'Hastelloy C-276', 'Brass (low pressure)'],
+      trim: ['17-4PH Needle', 'Stellite-faced Seat', 'Hardened 316 SS'],
+      seals: ['PTFE Packing', 'Grafoil Packing', 'Viton O-Rings']
+    },
+    standards: [
+      'ASME B16.34 (Valves — Pressure-Temperature Ratings)',
+      'API 598 (Valve Inspection and Testing)',
+      'ISO 15848 (Fugitive Emissions)',
+      'NACE MR0175 (Sour Service Materials)'
+    ],
+    maintenance: [
+      { interval: 'Annually', action: 'Inspect needle tip and seat for wire-drawing or pitting.', rationale: 'A damaged needle/seat loses both metering precision and shutoff.' },
+      { interval: 'As Required', action: 'Re-torque or replace stem packing on detection of seepage.', rationale: 'Fine-pitch stems leak readily under high pressure if packing relaxes.' },
+      { interval: 'Per Service', action: 'Verify upstream filtration is intact.', rationale: 'Particulates are the dominant cause of needle/seat damage.' }
+    ],
+    failureModes: [
+      { mode: 'Needle/Seat Wire-Drawing', cause: 'Throttling near closure lets high-velocity fluid erode fine channels in the tip and seat.', prevention: 'Avoid prolonged near-closed throttling; filter the fluid; replace worn trim.' },
+      { mode: 'Galling of Fine Threads', cause: 'Lack of lubrication and over-torque on the fine stem thread.', prevention: 'Use anti-seize compatible lubricant and do not over-tighten at closure.' },
+      { mode: 'Stem Packing Leakage', cause: 'High-pressure seepage past relaxed packing.', prevention: 'Use live-loaded packing and re-torque periodically.' }
+    ],
+    comparison: {
+      summary: 'Compared to Globe Valves, Needle Valves give far finer low-flow metering but are restricted to very small flow rates and high pressure drops.',
+      metrics: [
+        { parameter: 'Low-Flow Metering Precision', thisValveValue: 'Excellent (fine thread + needle taper)', alternativeValveName: 'Standard Globe Valve', alternativeValveValue: 'Good (but coarser)' },
+        { parameter: 'Flow Capacity', thisValveValue: 'Very Low (small orifice)', alternativeValveName: 'Standard Globe Valve', alternativeValveValue: 'Medium–High' },
+        { parameter: 'Pressure Rating', thisValveValue: 'Very High (forged compact body)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Medium (soft seats)' }
+      ]
+    }
+  },
+  'safety-valve-spring': {
+    id: 'safety-valve-spring',
+    name: 'Spring-Loaded Safety Valve',
+    category: 'Safety',
+    subcategory: 'Relief',
+    overview: 'A Spring-Loaded Safety Valve is a self-acting overpressure protection device that automatically discharges fluid the instant system pressure exceeds a calibrated set point, preventing vessel or pipe rupture. A helical spring holds a disc closed against an inlet nozzle; when pressure overcomes the spring force the disc lifts. A "huddling chamber" momentarily captures additional disc area at first lift, producing the characteristic rapid "pop" to full open. The valve reseats once pressure falls below the reseating (blowdown) pressure.',
+    workingPrinciple: 'System pressure acts on the disc area against the preset spring force. Below set pressure the spring keeps the valve bubble-tight. At set pressure the upward force just balances the spring; a small further rise exposes the larger huddling-chamber area, the net force jumps, and the disc pops fully open to relieve at rated capacity. As the overpressure is vented and pressure drops by the blowdown margin, the spring overcomes the reduced fluid force and snaps the disc shut.',
+    applications: [
+      'Steam boiler and superheater overpressure protection',
+      'Pressure vessel and storage tank relief',
+      'Compressor and pump discharge protection',
+      'Process piping thermal-expansion relief'
+    ],
+    advantages: [
+      'Fully self-acting — no external power or signal required',
+      'Fast pop-action gives high relieving capacity instantly',
+      'Field-adjustable set pressure via the spring adjuster'
+    ],
+    limitations: [
+      'Set-pressure drifts over time and needs periodic re-certification',
+      'Chattering and seat damage if oversized or with long inlet piping',
+      'Spring force is back-pressure sensitive (may need a balanced bellows)'
+    ],
+    components: [
+      { name: 'Helical Spring', function: 'Sets the relieving pressure by its calibrated preload.', typicalMaterials: ['Chrome-Vanadium Steel', 'Inconel X-750 (high temp)'] },
+      { name: 'Disc & Huddling Chamber', function: 'Closure that pops open at set pressure and reseats after blowdown.', typicalMaterials: ['Stellite-faced Stainless', 'Nimonic'] },
+      { name: 'Nozzle / Seat', function: 'Inlet orifice and primary seating surface; throat for relief flow.', typicalMaterials: ['Stellite-faced SS', '316 Stainless'] },
+      { name: 'Adjusting Screw', function: 'Sets spring compression to dial in the set pressure.', typicalMaterials: ['Alloy Steel', 'Stainless Steel'] }
+    ],
+    materials: {
+      body: ['ASTM A216 WCB', 'ASTM A351 CF8M', 'ASTM A352 LCB (low temp)', 'Bronze (utility)'],
+      trim: ['Stellite-faced Nozzle & Disc', '316 Stainless', 'Nimonic Disc'],
+      seals: ['Metal-to-Metal Seat', 'Soft O-Ring Seat (resilient seat option)', 'Spiral-Wound Body Gasket']
+    },
+    standards: [
+      'ASME BPVC Section I & VIII (Boiler & Pressure Vessel Code)',
+      'API 520 / API 526 (Sizing, Selection & Flanged Steel PRVs)',
+      'API 527 (Seat Tightness of Pressure Relief Valves)',
+      'ISO 4126 (Safety Devices for Protection Against Excessive Pressure)'
+    ],
+    maintenance: [
+      { interval: 'Annually / Per Code', action: 'Bench-test and re-certify set pressure and seat tightness.', rationale: 'Regulatory requirement; spring relaxation and seat wear shift the set point.' },
+      { interval: 'Per Lift Event', action: 'Inspect seat and disc after any relief discharge.', rationale: 'Pop-action and debris can score the seat, causing simmer/leakage.' },
+      { interval: 'Periodically', action: 'Verify discharge piping is free-draining and unobstructed.', rationale: 'Built-up back-pressure and trapped condensate impair lift and reseating.' }
+    ],
+    failureModes: [
+      { mode: 'Chatter', cause: 'Valve oversized or excessive inlet pressure loss (>3% rule) causing rapid open/close cycling.', prevention: 'Correctly size the valve and keep inlet line losses within code limits.' },
+      { mode: 'Simmer / Seat Leakage', cause: 'Seat damage or operating too close to set pressure.', prevention: 'Maintain adequate operating margin below set; lap or replace the seat.' },
+      { mode: 'Set-Point Drift', cause: 'Spring relaxation, corrosion, or fouling over time.', prevention: 'Scheduled bench testing and recertification; corrosion-resistant springs.' }
+    ],
+    comparison: {
+      summary: 'Compared to a rupture disc, a Spring-Loaded Safety Valve recloses after relieving and is reusable, but it is more complex and can leak or chatter if misapplied.',
+      metrics: [
+        { parameter: 'Reclosing After Relief', thisValveValue: 'Yes (reseats after blowdown)', alternativeValveName: 'Rupture Disc', alternativeValveValue: 'No (one-shot, must be replaced)' },
+        { parameter: 'Set-Point Accuracy', thisValveValue: 'High (adjustable spring)', alternativeValveName: 'Rupture Disc', alternativeValveValue: 'Moderate (burst tolerance band)' },
+        { parameter: 'Leak Tightness Near Set', thisValveValue: 'Can simmer near set pressure', alternativeValveName: 'Rupture Disc', alternativeValveValue: 'Zero leakage until burst' }
+      ]
+    }
+  },
+  'air-release-valve': {
+    id: 'air-release-valve',
+    name: 'Automatic Air Release Valve',
+    category: 'Air',
+    subcategory: 'Air Release',
+    overview: 'An Automatic Air Release Valve continuously vents the small pockets of air that come out of solution and accumulate at the high points of pressurised water pipelines. A buoyant float inside a chamber rides the water level; as air collects, the water level (and float) drops, opening a small orifice that exhausts the air to atmosphere. Once the air is expelled, water refills the chamber, the float rises, and the orifice reseals — all automatically under full line pressure.',
+    workingPrinciple: 'Under normal operation the chamber is full of water and the float is buoyed up, pressing a lever-actuated seal against the small discharge orifice. As dissolved air separates and gathers at the top, it displaces water downward; the float follows the falling level until the lever lifts the seal off the orifice. The pressurised air escapes through the small orifice; water then rises again, lifting the float to reseal before water can be lost. The small orifice is deliberately sized to release air without venting the much denser water.',
+    applications: [
+      'High points along water transmission mains',
+      'Peaks of long inclined pipelines',
+      'Pump stations and treatment plant headers',
+      'Irrigation and wastewater force mains'
+    ],
+    advantages: [
+      'Operates automatically and continuously under full line pressure',
+      'Prevents air-binding that throttles flow and wastes pump energy',
+      'Compact, simple, self-cleaning float mechanism'
+    ],
+    limitations: [
+      'Small orifice gives limited venting capacity (air-release only)',
+      'Float seat can clog in dirty, sticky, or slurry fluids',
+      'Single-function — cannot admit large volumes during draining (needs an air/vacuum valve)'
+    ],
+    components: [
+      { name: 'Float Ball', function: 'Buoyant element that follows the liquid level to open/close the orifice.', typicalMaterials: ['Hollow Stainless Steel', 'Reinforced Polypropylene'] },
+      { name: 'Discharge Orifice', function: 'Small calibrated port that vents accumulated air to atmosphere.', typicalMaterials: ['Stainless Steel', 'Brass'] },
+      { name: 'Orifice Seat', function: 'Soft seat the float lever presses against to seal the orifice.', typicalMaterials: ['EPDM', 'Buna-N', 'Viton'] },
+      { name: 'Lever Mechanism', function: 'Multiplies float buoyancy to seal against line pressure.', typicalMaterials: ['Stainless Steel', 'Acetal'] }
+    ],
+    materials: {
+      body: ['Ductile Iron (epoxy coated)', 'Reinforced Nylon', 'ASTM A351 CF8M', 'Bronze'],
+      trim: ['Stainless Steel Float & Lever', 'Brass Orifice', 'Acetal Guides'],
+      seals: ['EPDM Orifice Seat', 'Buna-N O-Rings', 'Viton (chemical service)']
+    },
+    standards: [
+      'AWWA C512 (Air-Release, Air/Vacuum and Combination Air Valves)',
+      'EN 1074-4 (Valves for Water Supply — Air Valves)',
+      'API 598 (Valve Inspection and Testing)',
+      'ISO 9001 (Quality Management — manufacture)'
+    ],
+    maintenance: [
+      { interval: 'Quarterly', action: 'Isolate, depressurise and flush the chamber and float.', rationale: 'Removes grit and biofilm that can stick the float and block the orifice.' },
+      { interval: 'Annually', action: 'Inspect the orifice seat and float for wear or waterlogging.', rationale: 'A worn seat leaks water; a waterlogged float fails to reseal.' },
+      { interval: 'As Required', action: 'Verify the isolating valve beneath the air valve operates freely.', rationale: 'Allows safe servicing without draining the main.' }
+    ],
+    failureModes: [
+      { mode: 'Orifice Clogging', cause: 'Debris, slime, or slurry lodges on the float/seat preventing sealing or venting.', prevention: 'Regular flushing; select larger orifice or wastewater-pattern valves for dirty fluids.' },
+      { mode: 'Continuous Water Spitting', cause: 'Worn or fouled seat lets water leak through the air orifice.', prevention: 'Replace the seat; clean the float and lever pivot.' },
+      { mode: 'Float Waterlogging / Collapse', cause: 'Pressure surge collapses a hollow float or cracks it, flooding it.', prevention: 'Use surge-rated solid or reinforced floats; control transients.' }
+    ],
+    comparison: {
+      summary: 'Compared to a large-orifice Air/Vacuum Valve, the Air Release Valve continuously vents small air pockets under pressure but cannot handle the bulk air flows during pipe filling or draining.',
+      metrics: [
+        { parameter: 'Venting Under Pressure', thisValveValue: 'Continuous (small orifice)', alternativeValveName: 'Air/Vacuum Valve', alternativeValveValue: 'Closes under pressure (no continuous vent)' },
+        { parameter: 'Bulk Air Capacity (fill/drain)', thisValveValue: 'Low', alternativeValveName: 'Air/Vacuum Valve', alternativeValveValue: 'Very High (large orifice)' },
+        { parameter: 'Function', thisValveValue: 'Releases accumulated air in service', alternativeValveName: 'Combination Air Valve', alternativeValveValue: 'Both functions in one body' }
+      ]
+    }
   }
 };
 

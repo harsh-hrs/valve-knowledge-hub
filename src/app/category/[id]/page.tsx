@@ -17,6 +17,11 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Pre-render a static page for every category at build time (required for `output: export`).
+export function generateStaticParams() {
+  return Object.keys(CATEGORIES_DATA).map((id) => ({ id }));
+}
+
 export default async function CategoryPage({ params }: PageProps) {
   const resolvedParams = await params;
   const category = CATEGORIES_DATA[resolvedParams.id];

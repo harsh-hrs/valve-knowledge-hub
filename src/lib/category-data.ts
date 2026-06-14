@@ -54,6 +54,22 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         workingPrinciple: 'The stem rotates a thin circular disc 90 degrees. The triple offset shaft alignment ensures the disc makes contact with the seat ring only at final shutoff, eliminating seat friction.',
         advantages: ['Compact lightweight design', 'Bi-directional zero-leakage shutoff', 'Low torque requirements'],
         limitations: ['Disc sits in the flow stream, creating minor flow resistance', 'Susceptible to cavitation damage under high pressure drop throttling', 'Cavity near seat can collect solid debris']
+      },
+      {
+        id: 'diaphragm-valve',
+        name: 'Weir Diaphragm Valve',
+        description: 'Flexible membrane pressed onto a weir, fully isolating the fluid from the working parts.',
+        workingPrinciple: 'A non-wetted stem lowers a compressor onto a flexible diaphragm, flexing it down onto a raised weir to throttle or shut off flow with zero stem leakage.',
+        advantages: ['Total fluid isolation (zero emissions)', 'Handles slurries and corrosives', 'Crevice-free and sterilisable'],
+        limitations: ['Low pressure and temperature limits', 'Diaphragm is a wear item', 'Not for high-pressure isolation']
+      },
+      {
+        id: 'plug-valve-lubricated',
+        name: 'Lubricated Plug Valve',
+        description: 'Tapered quarter-turn plug sealed by an injected lubricant film over full contact.',
+        workingPrinciple: 'A wrench rotates a tapered plug 90 degrees so its through-port aligns with or blocks the bore; injected sealant lubricates and renews the seal across the taper.',
+        advantages: ['Compact, fast quarter-turn', 'Excellent shutoff in dirty/gas service', 'Sealant frees a stuck plug'],
+        limitations: ['Needs periodic sealant injection', 'Higher torque in large sizes', 'Sealant compatibility constraints']
       }
     ]
   },
@@ -100,6 +116,14 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         workingPrinciple: 'The stem drives a contoured plug into a central seat ring. The fluid path shifts twice through the orifice, matching plug depth.',
         advantages: ['Exceptional throttling precision', 'Short stem stroke path', 'Easy seat refurbishment'],
         limitations: ['High inherent pressure drop', 'Requires high actuator closing forces', 'Susceptible to cavitation damage']
+      },
+      {
+        id: 'needle-valve',
+        name: 'Needle Valve',
+        description: 'Fine-tapered needle on a fine-pitch thread for precise low-flow metering.',
+        workingPrinciple: 'Many turns of a fine-thread stem advance a slender tapered needle into a small seat orifice, changing the flow area in tiny increments for repeatable control.',
+        advantages: ['Very fine low-flow control', 'Compact high-pressure body', 'Metering plus positive shutoff'],
+        limitations: ['Low flow capacity only', 'High pressure drop', 'Tip and seat damaged by particulates']
       }
     ]
   },

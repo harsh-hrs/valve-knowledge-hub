@@ -18,6 +18,11 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Pre-render a static page for every valve at build time (required for `output: export`).
+export function generateStaticParams() {
+  return Object.keys(VALVE_DETAILS).map((id) => ({ id }));
+}
+
 export default async function ValveDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const valve = VALVE_DETAILS[resolvedParams.id];
@@ -121,17 +126,17 @@ export default async function ValveDetailPage({ params }: PageProps) {
       <section className="flex flex-col gap-4">
         <h3 className="font-bold text-lg">Internal Assemblies & Component Roles</h3>
         <div className="overflow-hidden glass-panel rounded-2xl border border-white/5">
-          <div className="grid grid-cols-3 gap-4 bg-white/5 p-4 text-xs font-bold text-muted-foreground border-b border-white/5 uppercase tracking-wider">
+          <div className="hidden sm:grid grid-cols-3 gap-4 bg-white/5 p-4 text-xs font-bold text-muted-foreground border-b border-white/5 uppercase tracking-wider">
             <div>Component</div>
             <div>Functionality</div>
             <div>Typical Materials</div>
           </div>
           <div className="divide-y divide-white/5 text-xs text-muted-foreground">
             {valve.components.map((comp, idx) => (
-              <div key={idx} className="grid grid-cols-3 gap-4 p-4 hover:bg-white/5 transition-colors">
-                <div className="font-semibold text-primary">{comp.name}</div>
-                <div>{comp.function}</div>
-                <div>{comp.typicalMaterials.join(', ')}</div>
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-4 p-4 hover:bg-white/5 transition-colors">
+                <div className="font-semibold text-primary text-sm sm:text-xs">{comp.name}</div>
+                <div><span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Function</span>{comp.function}</div>
+                <div><span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Materials</span>{comp.typicalMaterials.join(', ')}</div>
               </div>
             ))}
           </div>
@@ -205,17 +210,17 @@ export default async function ValveDetailPage({ params }: PageProps) {
           Failure Modes & Mitigation
         </h3>
         <div className="overflow-hidden glass-panel rounded-2xl border border-white/5">
-          <div className="grid grid-cols-3 gap-4 bg-white/5 p-4 text-xs font-bold text-muted-foreground border-b border-white/5 uppercase tracking-wider">
+          <div className="hidden sm:grid grid-cols-3 gap-4 bg-white/5 p-4 text-xs font-bold text-muted-foreground border-b border-white/5 uppercase tracking-wider">
             <div>Failure Mode</div>
             <div>Primary Cause</div>
             <div>Mitigation & Prevention</div>
           </div>
           <div className="divide-y divide-white/5 text-xs text-muted-foreground">
             {valve.failureModes.map((fm, idx) => (
-              <div key={idx} className="grid grid-cols-3 gap-4 p-4 hover:bg-white/5 transition-colors">
-                <div className="font-semibold text-rose-400">{fm.mode}</div>
-                <div>{fm.cause}</div>
-                <div>{fm.prevention}</div>
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-4 p-4 hover:bg-white/5 transition-colors">
+                <div className="font-semibold text-rose-400 text-sm sm:text-xs">{fm.mode}</div>
+                <div><span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Cause</span>{fm.cause}</div>
+                <div><span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Prevention</span>{fm.prevention}</div>
               </div>
             ))}
           </div>
@@ -230,17 +235,21 @@ export default async function ValveDetailPage({ params }: PageProps) {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-white/5 text-xs text-muted-foreground">
-          <div className="grid grid-cols-3 gap-4 bg-white/5 p-3.5 font-bold uppercase border-b border-white/5">
+          <div className="hidden sm:grid grid-cols-3 gap-4 bg-white/5 p-3.5 font-bold uppercase border-b border-white/5">
             <div>Parameter</div>
             <div className="text-primary">{valve.name} (This)</div>
             <div>Comparison Alternative</div>
           </div>
           <div className="divide-y divide-white/5">
             {valve.comparison.metrics.map((metric, idx) => (
-              <div key={idx} className="grid grid-cols-3 gap-4 p-3.5 hover:bg-white/5 transition-all">
-                <div className="font-semibold">{metric.parameter}</div>
-                <div className="text-primary font-mono">{metric.thisValveValue}</div>
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-4 p-3.5 hover:bg-white/5 transition-all">
+                <div className="font-semibold text-sm sm:text-xs text-foreground sm:text-muted-foreground">{metric.parameter}</div>
+                <div className="text-primary font-mono">
+                  <span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5 font-sans">This valve</span>
+                  {metric.thisValveValue}
+                </div>
                 <div>
+                  <span className="sm:hidden text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">vs Alternative</span>
                   <span className="font-semibold text-foreground">{metric.alternativeValveName}</span>
                   <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{metric.alternativeValveValue}</div>
                 </div>
