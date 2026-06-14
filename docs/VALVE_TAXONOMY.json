@@ -1,0 +1,292 @@
+{
+  "categories": {
+    "linear": {
+      "name": "Linear Motion",
+      "description": "Valves where the closure member moves in a straight line to start, stop, or throttle flow.",
+      "subcategories": {
+        "gate": {
+          "name": "Gate Valves",
+          "description": "Sliding-disc valves primarily designed for on-off isolation with minimal flow restriction.",
+          "valves": [
+            {
+              "id": "gate-valve-wedge",
+              "name": "Wedge Gate Valve",
+              "category": "Linear",
+              "subcategory": "Gate - Wedge type",
+              "description": "A gate valve utilizing a wedge-shaped disc that matches the taper of the seats to ensure reliable shutoff under high pressure.",
+              "workingPrinciple": "The stem rotates through a threaded assembly, translating handwheel rotation into a linear downward or upward gate displacement. The wedge slides perpendicular to the flow, sealing against angled seat rings to block the fluid pathway.",
+              "advantages": [
+                "Extremely low pressure drop (straight-through flow pathway when fully open)",
+                "Bi-directional flow capability",
+                "Tight sealing characteristics under high pressures"
+              ],
+              "limitations": [
+                "Not suitable for throttling (localized high-velocity flow causes rapid erosion/chatter)",
+                "Slow opening and closing times compared to quarter-turn valves",
+                "Susceptible to thermal binding in high-temperature applications"
+              ],
+              "typicalApplications": [
+                "Main isolation pipelines for oil and gas",
+                "Water distribution mains",
+                "High-pressure steam distribution systems"
+              ],
+              "internalComponents": [
+                {
+                  "name": "Handwheel",
+                  "functionality": "Provides manual torque to actuate the stem assembly.",
+                  "typicalMaterials": ["Cast Iron", "Ductile Iron", "Carbon Steel"]
+                },
+                {
+                  "name": "Stem",
+                  "functionality": "Translates rotational mechanical motion into linear motion to lift or lower the wedge.",
+                  "typicalMaterials": ["SS410", "SS316", "Monel"]
+                },
+                {
+                  "name": "Wedge / Disc",
+                  "functionality": "The closure member that blocks or permits fluid flow.",
+                  "typicalMaterials": ["ASTM A216 WCB", "CF8M Stainless Steel"]
+                },
+                {
+                  "name": "Seat Rings",
+                  "functionality": "Provides a sealing surface for the wedge to press against.",
+                  "typicalMaterials": ["Stellite", "SS316", "Hastelloy"]
+                },
+                {
+                  "name": "Stuffing Box Gland",
+                  "functionality": "Compresses packing rings around the stem to prevent external leakage.",
+                  "typicalMaterials": ["Carbon Steel", "Stainless Steel"]
+                }
+              ],
+              "standards": [
+                "API 600 (Steel Gate Valves - Flanged and Butt-welding Ends)",
+                "ASME B16.34 (Valves Flanged, Threaded and Welding End)",
+                "API 598 (Valve Inspection and Testing)"
+              ]
+            }
+          ]
+        },
+        "globe": {
+          "name": "Globe Valves",
+          "description": "Valves featuring a spherical body cavity designed for throttling and flow regulation.",
+          "valves": [
+            {
+              "id": "globe-valve-standard",
+              "name": "Standard Globe Valve",
+              "category": "Linear",
+              "subcategory": "Globe - Z-Body type",
+              "description": "A linear motion valve featuring a tortuous Z-shaped path optimized for regulating and throttling flow rates.",
+              "workingPrinciple": "A plug or disc moves linearly relative to a seat ring located at the center of the flow passage. Flow is routed upward through the seat, allowing fine regulation as the plug adjusts the flow gap size.",
+              "advantages": [
+                "Excellent throttling and flow control capabilities",
+                "Shorter stem travel compared to gate valves",
+                "Easy seat repair and refurbishment capability"
+              ],
+              "limitations": [
+                "High pressure drop (tortuous flow path forces fluid direction changes)",
+                "Higher operating torque required to close against line pressure",
+                "Typically unidirectional flow (must install relative to flow arrow)"
+              ],
+              "typicalApplications": [
+                "Boiler feed lines and bypass lines",
+                "Cooling water systems requiring flow regulation",
+                "Chemical injection manifolds"
+              ],
+              "internalComponents": [
+                {
+                  "name": "Plug / Disc",
+                  "functionality": "The throttling element that seats into the orifice to restrict flow.",
+                  "typicalMaterials": ["SS316", "Stellite Coated Steel"]
+                },
+                {
+                  "name": "Seat Ring",
+                  "functionality": "The stationary circular orifice that the plug seats into.",
+                  "typicalMaterials": ["Stellite", "CF8M"]
+                },
+                {
+                  "name": "Stem",
+                  "functionality": "Connects the plug to the actuator, transmitting linear force.",
+                  "typicalMaterials": ["Stainless Steel 316"]
+                },
+                {
+                  "name": "Bonnet",
+                  "functionality": "Retains the stem seals and structural integrity of the upper body.",
+                  "typicalMaterials": ["ASTM A105 Carbon Steel", "CF8M"]
+                }
+              ],
+              "standards": [
+                "BS 1873 (Steel Globe and Globe Stop and Check Valves)",
+                "ASME B16.34 (Valves Flanged, Threaded and Welding End)",
+                "API 623 (Steel Globe Valves - Flanged and Butt-welding Ends)"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "rotary": {
+      "name": "Rotary Motion",
+      "description": "Valves utilizing a quarter-turn rotation of the closure element to control flow paths.",
+      "subcategories": {
+        "ball": {
+          "name": "Ball Valves",
+          "description": "Quarter-turn valves using a spherical closure member with a drilled fluid port.",
+          "valves": [
+            {
+              "id": "ball-valve-floating",
+              "name": "Floating Ball Valve",
+              "category": "Rotary",
+              "subcategory": "Ball - Floating type",
+              "description": "A quarter-turn valve where the ball is held between two soft seats, enabling upstream pressure to push the ball against the downstream seat for a tight seal.",
+              "workingPrinciple": "Rotating the stem 90 degrees aligns the ball's internal bore with the pipe axis. Turning it back perpendicular shifts the bore away, sealing the cavity. Line pressure moves the ball slightly downstream to compress the seat seal.",
+              "advantages": [
+                "Quick quarter-turn operation",
+                "Low pressure drop in full-port models",
+                "Self-cleaning seat interface during rotation"
+              ],
+              "limitations": [
+                "High operating torque under high differential pressures",
+                "Poor throttling capabilities due to localized seat erosion",
+                "Prone to seat distortion if left partially open"
+              ],
+              "typicalApplications": [
+                "Process lines in chemical and petrochemical plants",
+                "Utility water and gas isolate manifolds",
+                "Low-pressure hydraulic systems"
+              ],
+              "internalComponents": [
+                {
+                  "name": "Floating Ball",
+                  "functionality": "Rotatable sphere containing a flow port to block or permit passage.",
+                  "typicalMaterials": ["Chrome Plated Carbon Steel", "SS316"]
+                },
+                {
+                  "name": "Seat Rings (Soft)",
+                  "functionality": "Provide a low-friction, tight-sealing cradle for the floating ball.",
+                  "typicalMaterials": ["PTFE", "RPTFE", "PEEK"]
+                },
+                {
+                  "name": "Stem",
+                  "functionality": "Engages the slot on top of the ball to transmit rotational torque.",
+                  "typicalMaterials": ["SS316", "Monel K500"]
+                }
+              ],
+              "standards": [
+                "API 6D (Pipeline Valves)",
+                "ISO 17292 (Metal Ball Valves for Petroleum and Petrochemical)",
+                "API 607 (Fire Test for Soft-Seated Quarter-Turn Valves)"
+              ]
+            }
+          ]
+        },
+        "butterfly": {
+          "name": "Butterfly Valves",
+          "description": "Compact, lightweight quarter-turn valves using a disc rotating about an internal axis.",
+          "valves": [
+            {
+              "id": "butterfly-valve-triple-offset",
+              "name": "Triple Offset Butterfly Valve (TOV)",
+              "category": "Rotary",
+              "subcategory": "Butterfly - Triple Offset",
+              "description": "A high-performance butterfly valve with three geometric offsets that eliminate friction between the seal ring and the body seat during travel.",
+              "workingPrinciple": "The shaft is offset from the center of the valve body and disc, and the seat sealing cone is inclined. This geometry causes the disc to engage the seat only at the final point of shutoff, minimizing friction and wear.",
+              "advantages": [
+                "Zero-leakage metal-to-metal sealing",
+                "Bi-directional sealing capability at high temperatures and pressures",
+                "Low torque requirements relative to pressure drop limits"
+              ],
+              "limitations": [
+                "More expensive than concentric resilient butterfly valves",
+                "Inherent cavity obstruction (disc is always in the flow stream)",
+                "Sensitive to piping misalignment and line stress"
+              ],
+              "typicalApplications": [
+                "Cryogenic fluids and liquefied natural gas (LNG) systems",
+                "High-pressure refining and petrochemical services",
+                "Power generation steam systems"
+              ],
+              "internalComponents": [
+                {
+                  "name": "Offset Disc",
+                  "functionality": "The rotating barrier with a conical profile matching the body seat.",
+                  "typicalMaterials": ["CF8M", "Super Duplex Stainless Steel"]
+                },
+                {
+                  "name": "Metal Seat Ring",
+                  "functionality": "Precision seat integrated into the valve body to withstand metal disc contact.",
+                  "typicalMaterials": ["Stellite Hardfaced SS316"]
+                },
+                {
+                  "name": "Shaft / Stem",
+                  "functionality": "Dual or single offset shafts transmitting rotary actuation torque.",
+                  "typicalMaterials": ["17-4PH Stainless Steel", "Inconel 718"]
+                }
+              ],
+              "standards": [
+                "API 609 (Butterfly Valves: Double Flanged, Lug and Wafer-Type)",
+                "ASME B16.34 (Valves Flanged, Threaded and Welding End)",
+                "ISO 10631 (Metallic Butterfly Valves for General Purposes)"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "self-actuated": {
+      "name": "Self-Actuated",
+      "description": "Valves operating automatically using system energy (flow direction, line pressure, or spring forces).",
+      "subcategories": {
+        "check": {
+          "name": "Check Valves",
+          "description": "Non-return valves preventing reverse flow in systems.",
+          "valves": [
+            {
+              "id": "check-valve-swing",
+              "name": "Swing Check Valve",
+              "category": "Self-Actuated",
+              "subcategory": "Check - Swing type",
+              "description": "A non-return valve using a pivoted disc that swings open with forward flow and closes via gravity and reverse pressure.",
+              "workingPrinciple": "Fluid velocity in the forward direction forces the disc to swing upward off the seat. When flow velocity drops to zero or reverses, gravity and downstream pressure push the disc back onto the seat to prevent backflow.",
+              "advantages": [
+                "Completely automatic operation requiring no external control system",
+                "Low fluid resistance (straight-through flow pattern when fully open)",
+                "Can be used in systems with fluctuating flow velocities"
+              ],
+              "limitations": [
+                "Prone to water hammer if flow reverses rapidly (slamming check)",
+                "Not suitable for vertical-down flow piping systems",
+                "Accelerated hinge pin and disc wear in highly turbulent lines"
+              ],
+              "typicalApplications": [
+                "Pump discharge lines to prevent back-flow spinning",
+                "Low-pressure water distribution networks",
+                "Sewage and waste water lines"
+              ],
+              "internalComponents": [
+                {
+                  "name": "Swing Disc / Clapper",
+                  "functionality": "The pivoting closure member that moves under fluid pressure.",
+                  "typicalMaterials": ["Carbon Steel", "SS304", "AlBronze"]
+                },
+                {
+                  "name": "Hinge Pin",
+                  "functionality": "The axis about which the disc pivots or swings.",
+                  "typicalMaterials": ["SS316", "Monel"]
+                },
+                {
+                  "name": "Seat Ring",
+                  "functionality": "The stationary seal ring that matches the face of the swing disc.",
+                  "typicalMaterials": ["SS316 Overlay", "Stellite 6"]
+                }
+              ],
+              "standards": [
+                "API 6D (Pipeline Valves)",
+                "BS 1868 (Steel Check Valves for Petroleum, Petrochemical)",
+                "API 598 (Valve Testing)"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
