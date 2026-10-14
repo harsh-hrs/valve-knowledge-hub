@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, GraduationCap, Settings2, Menu, X, Cpu, Search } from 'lucide-react';
+import { Compass, GraduationCap, Settings2, Menu, X, Cpu, Search, Factory } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -12,6 +12,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: '/explore', label: '3D Explorer', icon: Compass },
+    { href: '/equipment', label: 'Equipment Lab', icon: Factory },
     { href: '/learn', label: 'Academy', icon: GraduationCap },
     { href: '/tools', label: 'Engineering Tools', icon: Settings2 },
     { href: '/search', label: 'Search Finder', icon: Search }
@@ -32,9 +33,9 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
               const Icon = link.icon;
               return (
                 <Link
@@ -61,7 +62,7 @@ export function Navbar() {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
+            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
             aria-label="Toggle menu"
           >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -77,10 +78,10 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="md:hidden glass-panel border-b border-white/5 absolute top-16 left-0 right-0 py-4 px-4 flex flex-col gap-3"
+            className="lg:hidden glass-panel border-b border-white/5 absolute top-16 left-0 right-0 py-4 px-4 flex flex-col gap-3"
           >
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
               const Icon = link.icon;
               return (
                 <Link

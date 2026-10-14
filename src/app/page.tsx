@@ -16,7 +16,8 @@ import {
   Layers,
   ListFilter,
   Play,
-  RotateCcw
+  RotateCcw,
+  Factory
 } from 'lucide-react';
 
 // Valve data for interactive search/showcase path
@@ -344,6 +345,28 @@ export default function Home() {
             )}
           </AnimatePresence>
         </div>
+      </section>
+
+      {/* Equipment Lab teaser */}
+      <section className="glass-panel rounded-3xl p-6 md:p-10 relative overflow-hidden border border-white/10 flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+        <div className="absolute -right-10 -top-10 w-56 h-56 bg-primary/10 rounded-full blur-3xl -z-10" />
+        <div className="flex-1 flex flex-col gap-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary">
+            <Factory className="h-4 w-4" /> New · Equipment Lab
+          </span>
+          <h2 className="text-2xl md:text-3xl font-extrabold">See a vertical turbine pump from the inside</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+            Take a nine-stage raw water intake pump apart in 3D. Cut it open, explode the bowls, show the sump water
+            levels and watch the shaft turn while water rises through the column.
+          </p>
+        </div>
+        <Link
+          href="/equipment/vertical-turbine-pump"
+          className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:cyan-glow transition-all duration-300 flex items-center justify-center gap-2 group shrink-0"
+        >
+          Open the pump in 3D
+          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+        </Link>
       </section>
 
       {/* Classification Categories quick-links */}
