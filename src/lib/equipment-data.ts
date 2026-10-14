@@ -64,4 +64,41 @@ export const EQUIPMENT: Record<string, EquipmentModel> = {
   },
 };
 
+EQUIPMENT['raw-water-pumping-station'] = {
+  id: 'raw-water-pumping-station',
+  name: 'Raw Water Pumping Station',
+  category: 'Pumping stations',
+  tagline: 'River intake to pumping main — run the pumps, open the gates and valves, and watch the water move.',
+  summary:
+    'A complete river intake pumping station: an RCC intake well with multi-level ports, screens and sluice gates; two 800 mm Hume pipes carrying water by gravity to an 8 m jack well; three vertical turbine pumps (two working, one standby) with their reflux valves, butterfly valves and dismantling joints; a 600 mm header, outlet valves, surge relief valve and pumping main; plus the 7.5 t EOT crane, ladders, ventilation and local controls.',
+  viewerSrc: '/viewers/pumping-station.html',
+  stats: [
+    { value: '1252', unit: 'm³/h', label: 'Station output' },
+    { value: '250', unit: 'm', label: 'Pumping head' },
+    { value: '3 × 650', unit: 'kW', label: 'VT pumps (2W + 1S)' },
+    { value: '8.0', unit: 'm', label: 'Jack well diameter' },
+    { value: '2 × 800', unit: 'mm', label: 'Gravity Hume pipes' },
+    { value: '7.5', unit: 't', label: 'EOT crane' },
+  ],
+  features: [
+    { title: 'Operate panel', text: 'Start, stop and emergency-stop each pump, open and close gates and valves, and change the river level.' },
+    { title: 'Live simulation', text: 'Water levels, flows, pressures and gauges respond — including the low-level trip and the surge relief valve.' },
+    { title: 'Guided tour', text: 'A 14-step walk from the river to the pumping main, including a crane lifting a motor out.' },
+    { title: 'Section & X-ray', text: 'Cut the wells and pipes in half or see through concrete to follow the flow inside.' },
+    { title: 'Every part explained', text: 'Click any of about 100 parts for what it does, how it works, key data, maintenance and safety.' },
+    { title: 'Building views', text: 'Show the pump house complete, cut away or without walls.' },
+  ],
+  learn: [
+    'Intake well, multi-level ports and bar screens',
+    'Sluice gates and headstocks',
+    'Gravity flow through Hume pipes',
+    'Jack well and pump submergence',
+    'Vertical turbine pumps and motors',
+    'Bellows, reflux valves and butterfly valves',
+    'Header, bypass, sluice valve and air valve',
+    'Surge relief and the EOT crane',
+  ],
+  note: 'Illustrative model of a typical raw-water intake pumping station. Sizes follow the project documents where given; other parts are drawn at typical proportions.',
+};
+
 export const EQUIPMENT_LIST = Object.values(EQUIPMENT);
