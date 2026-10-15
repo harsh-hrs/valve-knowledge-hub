@@ -680,7 +680,7 @@ body.walking .footer .foot-hint { visibility: hidden; }
 @media (max-width: 899px) { .minimap canvas { width: 100px; height: 200px; } .minimap { right: 10px; top: calc(var(--top-h) + 58px); } }
 
 </style>
-<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/src/index.js"}}</script></head><body>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/build/index.module.js"}}</script></head><body>
 <!-- ===== st_app_body.html — markup for the pumping-station viewer (inlined by tools/build.py) ===== -->
 <svg class="sprite" aria-hidden="true" focusable="false">
   <symbol id="i-brand" viewBox="0 0 24 24"><path d="M2.5 20.5h19"/><path d="M4 20.5V9.5l5-3v14"/><path d="M9 11h11v9.5"/><path d="M13 11V7.5h3V11"/><path d="M12 15h2M16.5 15h2"/><path d="M1.8 17.6c1.2-.9 2.4-.9 3.6 0"/></symbol>
@@ -851,8 +851,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { Sky } from 'three/addons/objects/Sky.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import { Sky } from 'three/addons/objects/Sky.js';
 
 // ===== pump/core.js =====
 // =====================================================================
@@ -4553,7 +4553,8 @@ function makeStationMaterial(key, overrides = {}) {
          }`);
     }
   };
-  mat.customProgramCacheKey = () => `st-${proc || 'none'}-${cap ? 'cap' : 'nocap'}-${cutColor.toString(16)}`;
+  // the cut colour is a uniform, so it must not split the shader cache (fewer shaders = faster loading)
+  mat.customProgramCacheKey = () => `st-${proc || 'none'}-${cap ? 'cap' : 'nocap'}`;
   mat.userData.paletteKey = key;
   mat.userData.label = p.label;
   return mat;
@@ -9031,7 +9032,8 @@ function scv_signFace(lines, w, h, opts = {}) {
   });
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.05 });
+  // a sign face sits a few mm proud of its board: bias its depth so it always wins (no z-fighting from afar)
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
   mat.userData.paletteKey = 'panel'; mat.userData.label = 'Sign board';
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
   m.userData.matKey = 'panel';
@@ -15226,6 +15228,10 @@ function createSiteWorld(A) {
   const sun = A.lights.sun;
   A.renderer.shadowMap.enabled = true;
   A.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // the scene is static: draw the shadow map only when something that casts a shadow changes
+  A.renderer.shadowMap.autoUpdate = false;
+  const markShadow = () => { A.renderer.shadowMap.needsUpdate = true; A.requestRender(); };
+  markShadow();
   sun.shadow.mapSize.set(A.isMobile() ? 1024 : 2048, A.isMobile() ? 1024 : 2048);
   const sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 260;
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
@@ -15238,7 +15244,7 @@ function createSiteWorld(A) {
     o.castShadow = !transparent && !noShadowLayers.has(lay);
     o.receiveShadow = !transparent;
   });
-  function setShadows(on) { W.shadows = !!on; sun.castShadow = W.shadows; A.requestRender(); }
+  function setShadows(on) { W.shadows = !!on; sun.castShadow = W.shadows; markShadow(); }
   setShadows(W.shadows);
 
   // ------------------------------------------------------------ lamps & night lights
@@ -15248,27 +15254,72 @@ function createSiteWorld(A) {
     l.mat = (m && m.isMaterial) ? m : null;
     if (l.mat) { l.mat.emissive = l.mat.emissive || new THREE.Color(0); l.mat.userData.baseEmissive = l.mat.emissive.clone(); }
   }
-  // a limited set of real light sources (created once, intensity animated → no shader recompiles)
-  const realLights = [];
-  const pickLights = (kind, n) => lampMeshes.filter((l) => l.kind === kind).slice(0, n);
-  for (const l of pickLights('street', 6).concat(pickLights('flood', 3))) {
-    const s = new THREE.SpotLight(0xfff1d6, 0, 38, l.kind === 'flood' ? 0.75 : 1.0, 0.6, 1.4);
-    s.position.set(M(l.pos[0]), M(l.pos[1]), M(l.pos[2]));
+  // Real light sources at night: a small pool (4 spot + 3 point lights) moved to the lamps nearest the view.
+  // Every light costs work on every pixel, so the pool is only in the scene at night. Adding lights needs a second
+  // version of every material's shader. Building those in the background caused random stalls on integrated
+  // graphics (the driver compiles them on the drawing queue), so they are built only when night is asked for,
+  // a few at a time: the lamps glow at once and their light follows a few seconds later. #pool=0 removes the pool.
+  const poolOff = A.params && A.params.pool === '0';
+  const spotCands = lampMeshes.filter((l) => l.kind === 'street' || l.kind === 'flood').map((l) => {
     const aim = l.aim || [l.pos[0], ST.levels.ground, l.pos[2]];
-    s.target.position.set(M(aim[0]), M(aim[1]), M(aim[2]));
-    A.scene.add(s, s.target);
-    realLights.push({ light: s, max: l.kind === 'flood' ? 260 : 150 });
+    return { pos: new V3(M(l.pos[0]), M(l.pos[1]), M(l.pos[2])), aim: new V3(M(aim[0]), M(aim[1]), M(aim[2])),
+      angle: l.kind === 'flood' ? 0.75 : 1.0, max: l.kind === 'flood' ? 260 : 150 };
+  });
+  const pointCands = lampMeshes.filter((l) => l.kind === 'indoor')
+    .map((l) => ({ pos: new V3(M(l.pos[0]), M(l.pos[1]) - 0.2, M(l.pos[2])), dist: 16, decay: 1.6, max: 45 }))
+    .concat([-1.0, 3.0].map((x) => ({ pos: new V3(x, 7.5, 0), dist: 22, decay: 1.4, max: 70 })));   // pump-house high bays
+  const spots = [], points = [];
+  for (let i = 0; i < (poolOff ? 0 : 4); i++) { const sl = new THREE.SpotLight(0xfff1d6, 0, 38, 1.0, 0.6, 1.4); A.scene.add(sl, sl.target); spots.push(sl); }
+  for (let i = 0; i < (poolOff ? 0 : 3); i++) { const pl = new THREE.PointLight(0xf4f7ff, 0, 16, 1.6); A.scene.add(pl); points.push(pl); }
+  const poolVisible = (on) => { for (const l of spots) l.visible = on; for (const l of points) l.visible = on; };
+  poolVisible(false);
+  let lampsOn = false;
+  // night shaders, prepared a few materials at a time
+  const prep = { list: null, i: 0, done: poolOff || !spots.length, urgent: false };
+  function prepSlice(budgetMs) {
+    if (prep.done) return true;
+    if (!prep.list) {
+      const reps = new Map();                                     // one object per material is enough
+      A.scene.traverse((o) => { const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach((mt) => { if (!reps.has(mt)) reps.set(mt, o); }); });
+      prep.list = [...new Set(reps.values())];
+    }
+    const t0 = performance.now();
+    poolVisible(true);
+    while (prep.i < prep.list.length && performance.now() - t0 < budgetMs) {
+      try { A.renderer.compile(prep.list[prep.i], A.camera, A.scene); } catch (e) { /* compiled on first use */ }
+      prep.i++;
+    }
+    prep.done = prep.i >= prep.list.length;
+    poolVisible(lampsOn && prep.done);
+    return prep.done;
   }
-  for (const l of pickLights('indoor', 3)) {
-    const p = new THREE.PointLight(0xf4f7ff, 0, 16, 1.6);
-    p.position.set(M(l.pos[0]), M(l.pos[1]) - 0.2, M(l.pos[2]));
-    A.scene.add(p);
-    realLights.push({ light: p, max: 45 });
+  function applyPool() {
+    if (lampsOn && !prep.done) {
+      if (A.manual) prepSlice(Infinity);                         // automation: deterministic
+      else if (!prep.urgent) { prep.urgent = true; A.toast('Switching the lights on…'); }
+    }
+    poolVisible(lampsOn && prep.done);
+    placePool(true);
   }
-  // pump-house high-bay lighting (one light per bay over the pumps)
-  for (const x of [-1.0, 3.0]) {
-    const p = new THREE.PointLight(0xf4f7ff, 0, 22, 1.4);
-    p.position.set(x, 7.5, 0); A.scene.add(p); realLights.push({ light: p, max: 70 });
+  function stepPrep() {
+    if (prep.urgent && prepSlice(30)) { prep.urgent = false; applyPool(); A.requestRender(); }
+  }
+  const poolAt = new V3(1e9, 0, 0);
+  const nearest = (list, f, n) => list.map((c) => [c.pos.distanceToSquared(f), c]).sort((a, b) => a[0] - b[0]).slice(0, n).map((x) => x[1]);
+  function placePool(force) {
+    const f = W.walking ? A.camera.position : A.controls.target;
+    if (!force && f.distanceToSquared(poolAt) < 4) return;          // re-place after 2 m of movement
+    poolAt.copy(f);
+    const ns = lampsOn ? nearest(spotCands, f, spots.length) : [], np = lampsOn ? nearest(pointCands, f, points.length) : [];
+    spots.forEach((sl, i) => {
+      const c = ns[i]; if (!c) { sl.intensity = 0; return; }
+      sl.position.copy(c.pos); sl.target.position.copy(c.aim); sl.angle = c.angle; sl.intensity = c.max;
+    });
+    points.forEach((pl, i) => {
+      const c = np[i]; if (!c) { pl.intensity = 0; return; }
+      pl.position.copy(c.pos); pl.distance = c.dist; pl.decay = c.decay; pl.intensity = c.max;
+    });
+    A.requestRender();
   }
 
   function setTime(h) {
@@ -15294,10 +15345,10 @@ function createSiteWorld(A) {
     A.renderer.toneMappingExposure = 0.55 + 0.45 * clamp(twilight * 1.5, 0, 1);
     if (A.scene.fog) A.scene.fog.color.setRGB(0.55 * day + 0.04, 0.65 * day + 0.06, 0.78 * day + 0.1);
     // lamps on from dusk to dawn
-    const lampsOn = night > 0.35;
+    lampsOn = night > 0.35;
     for (const l of lampMeshes) if (l.mat) { l.mat.emissive.set(lampsOn ? 0xfff2d8 : 0x000000); l.mat.emissiveIntensity = lampsOn ? 2.2 : 1; }
-    for (const r of realLights) r.light.intensity = lampsOn ? r.max : 0;
-    A.requestRender();
+    applyPool();
+    markShadow();
   }
 
   // ------------------------------------------------------------ live displays (canvas textures)
@@ -15459,18 +15510,19 @@ function createSiteWorld(A) {
   const walker = { pos: new V3(), yaw: 0, pitch: 0, vel: new V3(), keys: new Set(), run: false, joy: { x: 0, y: 0 } };
   const EYE = 1.62, RADIUS = 0.32, STEP = 0.48;
   const rc = new THREE.Raycaster();
+  rc.layers.enableAll();   // parts drawn through a batch keep their own meshes on layer 1
   let walkMeshes = [];
   function collectWalkMeshes() {
     walkMeshes = [];
     A.ctx.root.traverseVisible((o) => {
-      if (!o.isMesh || o.userData.overlay) return;
+      if (!o.isMesh || o.userData.overlay || o.userData.batch) return;
       if (o.material && o.material.transparent && o.userData.layer !== 'wall' && o.userData.layer !== 'wallFront') return; // glass/water pass
       walkMeshes.push(o);
     });
   }
   function buildBvh(done) {
     const geos = new Set();
-    A.ctx.root.traverse((o) => { if (o.isMesh && o.geometry && !o.geometry.boundsTree && o.geometry.attributes.position) geos.add(o.geometry); });
+    A.ctx.root.traverse((o) => { if (o.isMesh && !o.userData.batch && o.geometry && !o.geometry.boundsTree && o.geometry.attributes.position) geos.add(o.geometry); });
     const list = [...geos];
     let i = 0;
     const step = () => {
@@ -15498,6 +15550,7 @@ function createSiteWorld(A) {
     return null;
   }
   function placeCamera() {
+    W.lastMove = performance.now();   // the app draws fewer pixels while the view moves on slow graphics
     const cam = A.camera;
     cam.position.set(walker.pos.x, walker.pos.y + EYE, walker.pos.z);
     const d = new V3(Math.sin(walker.yaw) * Math.cos(walker.pitch), Math.sin(walker.pitch), -Math.cos(walker.yaw) * Math.cos(walker.pitch));
@@ -15656,16 +15709,27 @@ function createSiteWorld(A) {
 
   // ------------------------------------------------------------ per-frame
   let dispT = 0;
+  const craneAt = { x: NaN, z: NaN, hookY: NaN };
   function update(dt) {
     let active = false;
     if (W.walking) active = stepWalk(dt) || active;
     dispT += dt;
     if (dispT > 0.5) { dispT = 0; drawDisplays(); updatePanelLamps(); if (displays.length) A.requestRender(); }
     if (W.walking) drawMinimap(walker.pos.x, walker.pos.z, walker.yaw);
-    // keep the shadow camera around what we look at
-    const t = A.controls.target;
-    sun.target.position.set(t.x, ST.levels.ground * MM, t.z);
-    sun.position.copy(sunDir).multiplyScalar(120).add(sun.target.position);
+    // keep the shadow camera around what we look at (in 8 m steps, so the map is redrawn only on a step)
+    const t = A.controls.target, sx = Math.round(t.x / 8) * 8, sz = Math.round(t.z / 8) * 8;
+    if (sx !== sun.target.position.x || sz !== sun.target.position.z) {
+      sun.target.position.set(sx, ST.levels.ground * MM, sz);
+      sun.position.copy(sunDir).multiplyScalar(120).add(sun.target.position);
+      markShadow();
+    }
+    // the crane (and a motor on its hook) moved this frame — by the demo, a URL or the API: redraw the shadows
+    const cp = A.SIM.crane && A.SIM.crane.pose;
+    if (cp && (cp.x !== craneAt.x || cp.z !== craneAt.z || cp.hookY !== craneAt.hookY)) {
+      craneAt.x = cp.x; craneAt.z = cp.z; craneAt.hookY = cp.hookY; markShadow();
+    }
+    if (lampsOn) placePool(false);
+    stepPrep();
     updateSound();
     return active || W.walking;
   }
@@ -15673,7 +15737,8 @@ function createSiteWorld(A) {
   setTime(W.time);
   drawDisplays();
   W.ready = true;
-  Object.assign(W, { update, setTime, setWalk, teleport, setShadows, setSound, spots: SPOTS.map((s) => s[0]).concat(STATION_SPOTS.map((s) => s[0])), walker });
+  W.nightPrep = () => ({ done: prep.done, i: prep.i, n: prep.list ? prep.list.length : 0 });
+  Object.assign(W, { markShadow, update, setTime, setWalk, teleport, setShadows, setSound, spots: SPOTS.map((s) => s[0]).concat(STATION_SPOTS.map((s) => s[0])), walker });
   return W;
 }
 
@@ -15696,6 +15761,10 @@ function createSiteWorld(A) {
   'use strict';
 
   const V3 = THREE.Vector3;
+  // fast picking: bounding-volume trees (three-mesh-bvh), built in the background after the first frame
+  THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+  THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+  THREE.Mesh.prototype.raycast = acceleratedRaycast;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -15749,6 +15818,7 @@ function createSiteWorld(A) {
   const PARAMS = parseHash();
   const MANUAL = truthy(PARAMS.manual);
   const AUTOMATION = MANUAL || PARAMS.ui === '0' || 'tour' in PARAMS || 'cam' in PARAMS;
+  const HARNESS = MANUAL || PARAMS.ui === '0';   // screenshot harness: fixed resolution, readable drawing buffer
   const isMobile = () => window.innerWidth < 900;
 
   function setTheme(t) {
@@ -15768,6 +15838,7 @@ function createSiteWorld(A) {
   }
 
   // ------------------------------------------------------------------ globals
+  let labelRoot = null;
   let renderer, labelRenderer, scene, camera, controls, ctx, parts = [], byId = new Map(), pickables = [], lightRefs = null;
   let booted = false, firstFrame = false, needsRender = true, rafId = 0, lastT = 0, clock = 0, camTween = null, hoverPart = null;
   const insets = { l: 0, r: 0, t: 0, b: 0 };
@@ -15799,8 +15870,8 @@ function createSiteWorld(A) {
   function init() {
     const vp = $('#viewport');
     const W = window.innerWidth, H = window.innerHeight;
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
-    renderer.setPixelRatio(Math.min(isMobile() ? 1.5 : 2, window.devicePixelRatio || 1));
+    renderer = new THREE.WebGLRenderer({ antialias: PARAMS.aa !== '0', alpha: true, preserveDrawingBuffer: HARNESS, logarithmicDepthBuffer: PARAMS.logdepth === '1', powerPreference: 'high-performance' });
+    renderer.setPixelRatio(pixelRatio);
     renderer.setSize(W, H);
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -15808,6 +15879,8 @@ function createSiteWorld(A) {
     renderer.toneMappingExposure = 1.0;
     renderer.localClippingEnabled = true;
     renderer.domElement.className = 'gl';
+    // if the graphics context is lost (driver reset, sleep), draw every part from its own meshes from then on
+    renderer.domElement.addEventListener('webglcontextlost', () => { batchesLost = true; syncBatches(); requestRender(); });
     vp.insertBefore(renderer.domElement, vp.firstChild);
 
     labelRenderer = new CSS2DRenderer();
@@ -15843,7 +15916,9 @@ function createSiteWorld(A) {
     // ---- geometry ----
     ctx = buildStation(createStationContext());
     scene.add(ctx.root);
+    labelRoot = new THREE.Group(); labelRoot.name = 'labels'; labelRoot.scale.setScalar(MM); scene.add(labelRoot);
     if (Array.isArray(window.__buildErrors)) window.__buildErrors.forEach((m) => showError('Geometry builder failed — ' + m));
+    if (!truthy(PARAMS.nomerge)) { try { mergeInfo = mergeStatic(ctx); } catch (e) { console.error('merge failed', e); } }
     parts = ctx.parts;
     for (const p of parts) {
       byId.set(p.id, p);
@@ -15857,6 +15932,7 @@ function createSiteWorld(A) {
       });
     }
     prepareMaterials();
+    if (rigid && !truthy(PARAMS.nobatch)) { try { buildBatches(); } catch (e) { console.error('batching failed', e); } }
     buildWater();
     buildFlow();
     buildLabels();
@@ -15875,7 +15951,9 @@ function createSiteWorld(A) {
     applyVisibility();
     syncToolbar();
     setState(PARAMS, { boot: true });
+    const tFirst = performance.now();
     renderFrame();
+    window.__firstFrameMs = Math.round(performance.now() - tFirst);   // mostly shader compiling
     kick();
     window.addEventListener('hashchange', () => setState(parseHash()));
   }
@@ -15883,6 +15961,262 @@ function createSiteWorld(A) {
   function applyFog() {
     if (!scene || !scene.fog) return;
     scene.fog.color.set(S.theme === 'light' ? 0xd7e4ef : 0x26364a);
+  }
+
+  // ------------------------------------------------------------------
+  // Performance: merge meshes that never move. Every mesh costs a draw call; the builders make
+  // thousands of small ones. Moving things are found by exercising every animation handle once and
+  // watching which objects change; those, and anything a handle holds directly, stay separate.
+  // Static meshes are baked into their nearest "rigid" ancestor (the part root or a moving group)
+  // and merged per material.
+  // ------------------------------------------------------------------
+  let mergeInfo = null, rigid = null;
+  function findMoving(root, anim) {
+    const objs = []; root.traverse((o) => objs.push(o));
+    const N = objs.length, T = new Float64Array(N * 10);
+    const posVer = (o) => (o.geometry && o.geometry.attributes && o.geometry.attributes.position ? o.geometry.attributes.position.version : -1);
+    objs.forEach((o, i) => {
+      const p = o.position, q = o.quaternion, sc = o.scale, k = i * 10;
+      T[k] = p.x; T[k + 1] = p.y; T[k + 2] = p.z; T[k + 3] = q.x; T[k + 4] = q.y; T[k + 5] = q.z; T[k + 6] = q.w; T[k + 7] = sc.x; T[k + 8] = sc.y; T[k + 9] = sc.z;
+    });
+    const vis = objs.map((o) => o.visible), matRef = objs.map((o) => o.material), geoRef = objs.map((o) => o.geometry), ver = objs.map(posVer);
+    const mats = new Set();
+    for (const o of objs) if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => mats.add(m));
+    const msnap = [...mats].map((m) => [m, m.color ? m.color.clone() : null, m.emissive ? m.emissive.clone() : null, m.emissiveIntensity, m.opacity, m.visible]);
+    // everything a handle refers to directly, and every function it offers
+    const held = new Set(), heldGeo = new Set(), seen = new Set(), fns = [];
+    (function walk(v, depth, owner) {
+      if (!v || depth > 6) return;
+      if (typeof v === 'function') { fns.push([v, owner]); return; }
+      if (typeof v !== 'object' || seen.has(v)) return;
+      seen.add(v);
+      if (v.isObject3D) { held.add(v); return; }
+      if (v.isBufferGeometry) { heldGeo.add(v); return; }
+      if (v.isMaterial || v.isTexture || v.isBufferAttribute) return;
+      for (const k of Object.keys(v)) walk(v[k], depth + 1, v);
+    })(anim, 0, null);
+    const moved = new Set();
+    // compare with the snapshot after EVERY call: a later call may put an object back where it started
+    const scan = () => {
+      for (let i = 0; i < N; i++) {
+        const o = objs[i];
+        if (moved.has(o)) continue;
+        const p = o.position, q = o.quaternion, sc = o.scale, k = i * 10;
+        if (p.x !== T[k] || p.y !== T[k + 1] || p.z !== T[k + 2] || q.x !== T[k + 3] || q.y !== T[k + 4] || q.z !== T[k + 5] || q.w !== T[k + 6] ||
+          sc.x !== T[k + 7] || sc.y !== T[k + 8] || sc.z !== T[k + 9] || o.visible !== vis[i] || o.material !== matRef[i] ||
+          o.geometry !== geoRef[i] || posVer(o) !== ver[i]) moved.add(o);   // a swapped geometry (crane festoon) counts too
+      }
+    };
+    // numbers only (a string or object can leave a handle's own state at NaN for good, e.g. a compressor's speed);
+    // pose objects only for pose setters (the crane)
+    const NUM = [[0.37], [1], [0.5], [0.25], [30], [0]];
+    const POSE = [[{ x: -1e9, z: -1e9, hookY: -1e9 }], [{ x: 1e9, z: 1e9, hookY: 1e9 }], [{ x: 0, z: 0, hookY: 0 }]];
+    for (const [f, owner] of fns) {
+      for (const a of (/pose/i.test(f.name || '') ? POSE : NUM)) { try { f.apply(owner, a); } catch (e) { /* not a setter */ } scan(); }
+    }
+    // put handle state back where the builders left it: the screen hoist parks at the first port, the crane at home
+    const sk = Object.keys(anim.screens || {});
+    if (sk.length && anim.screens[sk[0]].setLift) { try { anim.screens[sk[0]].setLift(0.01); anim.screens[sk[0]].setLift(0); } catch (e) { /* ignore */ } }
+    if (anim.crane && anim.crane.setPose && ST.crane && ST.crane.home) { try { anim.crane.setPose(ST.crane.home); } catch (e) { /* ignore */ } }
+    objs.forEach((o, i) => {
+      const k = i * 10;
+      o.position.set(T[k], T[k + 1], T[k + 2]); o.quaternion.set(T[k + 3], T[k + 4], T[k + 5], T[k + 6]); o.scale.set(T[k + 7], T[k + 8], T[k + 9]);
+      o.visible = vis[i]; o.material = matRef[i];
+    });
+    for (const [m, c, e, ei, op, v] of msnap) {
+      if (c !== null) m.color.copy(c); if (e !== null) m.emissive.copy(e);
+      if (ei !== undefined) m.emissiveIntensity = ei; m.opacity = op; m.visible = v;
+    }
+    for (const o of held) moved.add(o);
+    for (const o of objs) if (o.geometry && heldGeo.has(o.geometry)) moved.add(o);
+    return moved;
+  }
+  // bake a list of meshes (same material and attribute layout) into one geometry in the container's space;
+  // writes straight into the output arrays so no per-mesh copies are made
+  function bakeMerge(list, inv) {
+    const g0 = list[0].geometry, names = Object.keys(g0.attributes), indexed = !!g0.index;
+    let total = 0, totalIdx = 0;
+    for (const o of list) { total += o.geometry.attributes.position.count; if (indexed) totalIdx += o.geometry.index.count; }
+    const outs = {};
+    for (const n of names) outs[n] = new g0.attributes[n].array.constructor(total * g0.attributes[n].itemSize);
+    const idx = indexed ? (total > 65535 ? new Uint32Array(totalIdx) : new Uint16Array(totalIdx)) : null;
+    const rel = new THREE.Matrix4(), nm = new THREE.Matrix3(), e = rel.elements, q = nm.elements;
+    let off = 0, ioff = 0;
+    for (const o of list) {
+      const g = o.geometry, cnt = g.attributes.position.count;
+      rel.multiplyMatrices(inv, o.matrixWorld); nm.getNormalMatrix(rel);
+      const flip = rel.determinant() < 0;      // a mirrored transform turns triangles inside out once baked
+      for (const n of names) {
+        const src = g.attributes[n], s = src.itemSize, a = src.array, d = outs[n], base = off * s;
+        if (n === 'position') {
+          for (let i = 0; i < cnt; i++) {
+            const x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2], w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+            d[base + i * 3] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+            d[base + i * 3 + 1] = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+            d[base + i * 3 + 2] = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+          }
+        } else if (n === 'normal') {
+          for (let i = 0; i < cnt; i++) {
+            const x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2];
+            let nx = q[0] * x + q[3] * y + q[6] * z, ny = q[1] * x + q[4] * y + q[7] * z, nz = q[2] * x + q[5] * y + q[8] * z;
+            const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+            d[base + i * 3] = nx; d[base + i * 3 + 1] = ny; d[base + i * 3 + 2] = nz;
+          }
+        } else d.set(a.subarray(0, cnt * s), base);
+        if (flip && !indexed) for (let i = 0; i + 2 < cnt; i += 3) for (let k = 0; k < s; k++) {
+          const p = base + (i + 1) * s + k, r = base + (i + 2) * s + k, t = d[p]; d[p] = d[r]; d[r] = t;
+        }
+      }
+      if (indexed) {
+        const ia = g.index.array, ic = g.index.count;
+        for (let i = 0; i < ic; i++) idx[ioff + i] = ia[i] + off;
+        if (flip) for (let i = 0; i + 2 < ic; i += 3) { const t = idx[ioff + i + 1]; idx[ioff + i + 1] = idx[ioff + i + 2]; idx[ioff + i + 2] = t; }
+        ioff += ic;
+      }
+      off += cnt;
+    }
+    const out = new THREE.BufferGeometry();
+    for (const n of names) out.setAttribute(n, new THREE.BufferAttribute(outs[n], g0.attributes[n].itemSize, g0.attributes[n].normalized));
+    if (idx) out.setIndex(new THREE.BufferAttribute(idx, 1));
+    out.computeBoundingSphere(); out.computeBoundingBox();
+    return out;
+  }
+  function mergeStatic(ctx) {
+    const t0 = performance.now();
+    const moving = findMoving(ctx.root, ctx.anim);
+    if (ctx.anim.crane && ctx.anim.crane.setPose && ST.crane && ST.crane.home) ctx.anim.crane.setPose(ST.crane.home);   // ropes & festoon back home
+    ctx.root.updateMatrixWorld(true);
+    const roots = new Set(ctx.parts.map((p) => p.object));
+    // a moving mesh stays as it is; so does everything under it
+    const frozen = new Set();
+    for (const o of moving) if (o.isMesh && !roots.has(o)) o.traverse((c) => frozen.add(c));
+    const groups = new Map(), why = {};
+    const skip = (r) => { why[r] = (why[r] || 0) + 1; };
+    let before = 0;
+    for (const part of ctx.parts) {
+      part.object.traverse((o) => {
+        if (!o.isMesh) return;
+        before++;
+        if (frozen.has(o)) return skip('moving');
+        if (o.constructor !== THREE.Mesh || Array.isArray(o.material) || !o.material) return skip('type');
+        if (Object.prototype.hasOwnProperty.call(o, 'raycast') || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender')) return skip('custom');
+        const g = o.geometry;
+        if (!g || !g.attributes.position || Object.keys(g.morphAttributes || {}).length) return skip('geometry');
+        if (g.drawRange.start !== 0 || g.drawRange.count !== Infinity) return skip('range');
+        if (Object.values(g.attributes).some((a) => a.isInterleavedBufferAttribute) || g.attributes.tangent) return skip('attrs');
+        if (g.attributes.position.itemSize !== 3 || (g.attributes.normal && g.attributes.normal.itemSize !== 3)) return skip('attrs');
+        // nearest rigid ancestor; every object on the way must be visible and not moving
+        let c = o.parent, ok = o.visible;
+        while (ok && c && !roots.has(c) && !moving.has(c)) { if (!c.visible) ok = false; c = c.parent; }
+        if (!ok || !c || (moving.has(c) && c.isMesh)) return skip(ok ? 'chain' : 'hidden');
+        const sig = Object.keys(g.attributes).sort().map((k) => `${k}${g.attributes[k].itemSize}${g.attributes[k].normalized ? 'n' : ''}${g.attributes[k].array.constructor.name}`).join(',');
+        const key = [c.uuid, o.material.uuid, sig, g.index ? 'i' : 'n', o.castShadow, o.receiveShadow, o.renderOrder, o.frustumCulled, o.userData.matKey || '', o.userData.layer || ''].join('|');
+        let G = groups.get(key);
+        if (!G) groups.set(key, (G = { container: c, material: o.material, list: [], part }));
+        G.list.push(o);
+      });
+    }
+    const inv = new THREE.Matrix4();
+    let made = 0, removed = 0;
+    for (const G of groups.values()) {
+      if (G.list.length < 2) { skip('alone'); continue; }
+      inv.copy(G.container.matrixWorld).invert();
+      const merged = bakeMerge(G.list, inv);
+      const a = G.list[0];
+      const m = new THREE.Mesh(merged, G.material);
+      m.name = (G.part.id || 'part') + ':merged';
+      m.castShadow = a.castShadow; m.receiveShadow = a.receiveShadow; m.renderOrder = a.renderOrder; m.frustumCulled = a.frustumCulled;
+      m.userData = { matKey: a.userData.matKey, partIndex: a.userData.partIndex, layer: a.userData.layer, merged: G.list.length };
+      for (const o of G.list) { o.parent.remove(o); removed++; }
+      G.container.add(m);
+      made++;
+    }
+    // drop groups left empty
+    const prune = (o) => { for (const c of [...o.children]) prune(c); if (!o.isMesh && !o.children.length && o.parent && !roots.has(o) && !moving.has(o) && o.type === 'Group') o.parent.remove(o); };
+    for (const r of roots) for (const c of [...r.children]) prune(c);
+    ctx.root.updateMatrixWorld(true);
+    let after = 0; ctx.root.traverse((o) => { if (o.isMesh) after++; });
+    rigid = { moving, frozen, roots };
+    return { before, after, merged: removed, into: made, moving: moving.size, why, ms: Math.round(performance.now() - t0) };
+  }
+
+  // ------------------------------------------------------------------
+  // Performance: static batches. Static meshes of different parts that share a material are drawn as one
+  // mesh per material and 25 m cell (one draw call). Each part keeps its own meshes on layer 1 (not drawn,
+  // but picked, highlighted, ghosted and used for walking); when a part is highlighted, ghosted or hidden,
+  // its range is left out of the batch and its own meshes are drawn instead.
+  // ------------------------------------------------------------------
+  const batches = [];
+  const CELL = 25;   // m
+  let batchesLost = false;   // after a lost WebGL context the freed batch arrays cannot be uploaded again
+  function buildBatches() {
+    const { moving, frozen, roots } = rigid;
+    const rootInv = new THREE.Matrix4().copy(ctx.root.matrixWorld).invert();
+    const sph = new THREE.Sphere(), groups = new Map();
+    for (const p of parts) {
+      if (moving.has(p.object) || !p.object.visible) continue;
+      for (const m of p.meshes) {
+        if (m.constructor !== THREE.Mesh || frozen.has(m) || moving.has(m) || Array.isArray(m.material) || !m.material) continue;
+        const mt = m.material;
+        if (mt.transparent || mt.opacity < 1 || m.renderOrder !== 0 || !m.visible) continue;
+        if (Object.prototype.hasOwnProperty.call(m, 'raycast') || Object.prototype.hasOwnProperty.call(m, 'onBeforeRender')) continue;
+        const g = m.geometry;
+        if (!g || !g.attributes.position || g.attributes.position.itemSize !== 3 || g.attributes.tangent || Object.keys(g.morphAttributes || {}).length) continue;
+        if (g.drawRange.start !== 0 || g.drawRange.count !== Infinity || Object.values(g.attributes).some((a) => a.isInterleavedBufferAttribute)) continue;
+        if (g.attributes.normal && g.attributes.normal.itemSize !== 3) continue;
+        let c = m.parent, ok = true;
+        while (c && c !== p.object) { if (!c.visible || moving.has(c)) { ok = false; break; } c = c.parent; }
+        if (!ok || !c) continue;
+        if (!g.boundingSphere) g.computeBoundingSphere();
+        sph.copy(g.boundingSphere).applyMatrix4(m.matrixWorld);
+        const cell = Math.floor(sph.center.x / CELL) + ',' + Math.floor(sph.center.z / CELL);
+        const sig = Object.keys(g.attributes).sort().map((k) => `${k}${g.attributes[k].itemSize}${g.attributes[k].normalized ? 'n' : ''}${g.attributes[k].array.constructor.name}`).join(',');
+        const key = [mt.uuid, sig, g.index ? 'i' : 'n', m.castShadow, m.receiveShadow, m.frustumCulled, p.layer, m.userData.matKey || '', cell].join('|');
+        let G = groups.get(key);
+        if (!G) groups.set(key, (G = { material: mt, layer: p.layer, list: [] }));
+        G.list.push({ m, p });
+      }
+    }
+    for (const G of groups.values()) {
+      if (G.list.length < 2) continue;
+      const geo = bakeMerge(G.list.map((r) => r.m), rootInv);
+      const ranges = []; let at = 0;
+      for (const { m, p } of G.list) {
+        const n = m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count;
+        ranges.push({ mesh: m, part: p, start: at, count: n }); at += n;
+      }
+      geo.groups = [{ start: 0, count: at, materialIndex: 0 }];
+      // the batch is never read back on the CPU: free its arrays once they are on the graphics card
+      const free = function () { this.array = null; };
+      for (const a of Object.values(geo.attributes)) a.onUpload(free);
+      if (geo.index) geo.index.onUpload(free);
+      const bm = new THREE.Mesh(geo, [G.material]);
+      const a0 = G.list[0].m;
+      bm.name = 'batch:' + (a0.userData.matKey || G.material.name || 'mat');
+      bm.castShadow = a0.castShadow; bm.receiveShadow = a0.receiveShadow; bm.frustumCulled = a0.frustumCulled;
+      bm.raycast = () => {};
+      bm.userData = { batch: true, layer: G.layer, matKey: a0.userData.matKey };
+      ctx.root.add(bm);
+      for (const r of ranges) r.mesh.layers.set(1);
+      batches.push({ mesh: bm, ranges });
+    }
+    ctx.root.updateMatrixWorld(true);
+    if (mergeInfo) mergeInfo.batches = batches.length, mergeInfo.batched = batches.reduce((s, b) => s + b.ranges.length, 0);
+  }
+  // which ranges a batch draws: a part's meshes are in the batch while they show their base material
+  function syncBatches() {
+    for (const B of batches) {
+      const gs = []; let cur = null;
+      for (const r of B.ranges) {
+        const m = r.mesh, on = !batchesLost && r.part.object.visible && m.material === m.userData.baseMat;
+        m.layers.set(on ? 1 : 0);
+        if (!on) continue;
+        if (cur && cur.start + cur.count === r.start) cur.count += r.count;
+        else gs.push((cur = { start: r.start, count: r.count, materialIndex: 0 }));
+      }
+      B.mesh.geometry.groups = gs;
+      B.mesh.visible = gs.length > 0;
+    }
   }
 
   // ------------------------------------------------------------------
@@ -15940,6 +16274,7 @@ function createSiteWorld(A) {
         else m.material = variant(k, base);
       }
     }
+    syncBatches();
     requestRender();
   }
 
@@ -15954,6 +16289,8 @@ function createSiteWorld(A) {
   function applyVisibility() {
     const sel = new Set(S.sel);
     for (const p of parts) p.object.visible = layerShown(p.layer) && !S.hidden.has(p.id) && (!S.isolate || sel.has(p.id) || p.layer === 'terrain');
+    syncBatches();
+    if (world && world.markShadow) world.markShadow();
     refreshLabels();
     refreshList();
     requestRender();
@@ -16409,12 +16746,12 @@ function createSiteWorld(A) {
       el.addEventListener('click', (e) => { e.stopPropagation(); selectIds([p.id], { fly: true }); });
       const o = new CSS2DObject(el);
       o.position.set(p.label[0], p.label[1], p.label[2]);
-      ctx.root.add(o);
+      labelRoot.add(o);
       labels.push({ p, el, o });
     }
     const tag = (name, color, getY, x, z) => {
       const el = document.createElement('div'); el.className = 'lvtag hide'; el.style.setProperty('--c', color);
-      const o = new CSS2DObject(el); o.position.set(x, 0, z); ctx.root.add(o);
+      const o = new CSS2DObject(el); o.position.set(x, 0, z); labelRoot.add(o);
       levelTags.push({ el, o, name, getY });
     };
     const xT = ST.jackWell.r + ST.jackWell.wall + 150;
@@ -16831,7 +17168,7 @@ function createSiteWorld(A) {
   }
 
   // ------------------------------------------------------------------ toggles
-  function setCut(on) { S.cut = !!on; applyClipping(); applyVisibility(); updateWater(); syncToolbar(); requestRender(); }
+  function setCut(on) { S.cut = !!on; applyClipping(); if (world && world.markShadow) world.markShadow(); applyVisibility(); updateWater(); syncToolbar(); requestRender(); }
   function setXray(on) { S.xray = !!on; for (const p of parts) p.cur = null; applyMaterials(); updateWater(); syncToolbar(); }
   function setLabels(on) { S.labels = !!on; refreshLabels(); syncToolbar(); }
   function setBuilding(m) { S.building = ['full', 'cutaway', 'off'].includes(m) ? m : 'cutaway'; applyVisibility(); syncToolbar(); }
@@ -16953,6 +17290,7 @@ function createSiteWorld(A) {
 
   // ------------------------------------------------------------------ picking
   const raycaster = new THREE.Raycaster();
+  raycaster.layers.enableAll();   // parts drawn through a batch keep their own meshes on layer 1
   const ndc = new THREE.Vector2();
   function pick(x, y) {
     const r = renderer.domElement.getBoundingClientRect();
@@ -17198,7 +17536,7 @@ function createSiteWorld(A) {
   }
 
   // ------------------------------------------------------------------ frame loop
-  let inStep = false, uiTimer = 0;
+  let inStep = false, uiTimer = 0, motionUntil = 0, motionFramePrev = false;
   function requestRender() { needsRender = true; kick(); }
   function kick() { if (MANUAL || !booted || rafId) return; rafId = requestAnimationFrame(tick); }
   function tick(now) {
@@ -17207,10 +17545,14 @@ function createSiteWorld(A) {
     lastT = now;
     const active = advance(dt);
     const moving = controls.update();
-    if (needsRender || moving) renderFrame();
+    const viewMoved = moving || !!camTween || !!(world && world.walking && now - (world.lastMove || 0) < 250);
+    if (viewMoved) motionUntil = now + 250;
+    else if (pixelRatio !== PR_MAX && now > motionUntil) needsRender = true;     // view stopped: redraw sharp
+    if (needsRender || moving) { renderFrame(viewMoved && motionFramePrev); motionFramePrev = viewMoved; }
+    else motionFramePrev = false;
     if (active || moving) kick(); else lastT = 0;
   }
-  let frameAcc = 0;
+  let frameAcc = 0, travelSig = 0, travelWas = false, travelShadowT = 0;
   function advance(dt) {
     clock += dt;
     let active = true;                      // the station is always "live": water, levels, sim
@@ -17218,6 +17560,17 @@ function createSiteWorld(A) {
     SIM.step(dt);
     if (world) { if (SITEAPP) stepSiteSim(dt); if (world.update(dt)) needsRender = true; }
     const screens = stepScreens(dt);
+    // site page, static shadow map: redraw while gates, valves or screens travel (4 times a second) and once more
+    // when they stop, so the final position is in the shadows too
+    if (world && world.markShadow) {
+      let sig = 0, n = 0;
+      for (const v of Object.values(SIM.valves)) sig += ++n * v.pos;
+      for (const g of Object.values(SIM.gates)) sig += ++n * g.pos;
+      const travel = !!screens || Math.abs(sig - travelSig) > 1e-7;
+      travelSig = sig;
+      if (travel || travelWas) { travelShadowT += dt; if (!travel || travelShadowT > 0.25) { travelShadowT = 0; world.markShadow(); } }
+      travelWas = travel;
+    }
     updateWater();
     updateFlow(dt);
     water.uTime.value = clock;
@@ -17225,7 +17578,7 @@ function createSiteWorld(A) {
     const moving = SIM.crane.seq || screens || SIM.prvQ > 0 || (S.flow && SIM.anyFlow()) || SIM.running().length ||
       Object.values(SIM.valves).some((v) => v.pos !== v.target) || Object.values(SIM.gates).some((g) => g.pos !== g.target);
     frameAcc += dt;
-    if (frameAcc >= (moving ? 1 / 40 : 1 / 12)) { frameAcc = 0; needsRender = true; }
+    if (frameAcc >= (moving ? 1 / 30 : 1 / 12)) { frameAcc = 0; needsRender = true; }
     uiTimer += dt;
     if (uiTimer > 0.25) {
       uiTimer = 0;
@@ -17248,20 +17601,70 @@ function createSiteWorld(A) {
     renderFrame();
     return getState();
   }
-  function renderFrame() {
+  function renderFrame(sample = false) {
     if (!renderer) return;
     needsRender = false;
     const dist = camera.position.distanceTo(controls.target);
-    camera.near = clamp(dist / 400, 0.02, 1.0);
+    // walking keeps the eye >= 0.32 m from walls, so a larger near plane gives more depth precision there
+    camera.near = clamp(dist / 400, world && world.walking ? 0.1 : 0.02, 1.0);
     camera.far = Math.max(600, dist * 8);
     camera.updateProjectionMatrix();
+    const c0 = performance.now();
+    if (!HARNESS && !PR_FIXED) {
+      const want = c0 < motionUntil ? motionPR : PR_MAX;
+      if (want !== pixelRatio) { pixelRatio = want; renderer.setPixelRatio(want); }   // resize BEFORE drawing: a resize clears the canvas
+    }
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
+    adaptResolution(c0, performance.now() - c0, sample);
+    labelRenderer.render(labelRoot, camera);   // only the label objects, not the whole scene
     declutterLabels();
     if (!firstFrame) onFirstFrame();
   }
+  // Adaptive resolution while the view moves: on slow graphics, orbiting / zooming / walking is drawn with fewer
+  // pixels (only if that really makes frames faster); as soon as the view stops, the frame is redrawn sharp.
+  const PR_FIXED = parseFloat(PARAMS.pr) > 0 ? clamp(parseFloat(PARAMS.pr), 0.3, 3) : 0;   // #pr=1 fixes the resolution
+  const PR_MAX = PR_FIXED || Math.min(1.5, window.devicePixelRatio || 1), PR_MIN = Math.min(PR_MAX, 0.6);
+  let pixelRatio = PR_MAX, motionPR = PR_MAX, lastRenderT = 0, gapAvg = 0, cpuAvg = 0, nSamples = 0, prHold = 0,
+    prTrial = null, lowerOff = false, raiseOffUntil = 0, lastRaise = null;
+  function judgeAfter(t0, hold) { gapAvg = 0; cpuAvg = 0; nSamples = 0; prHold = t0 + hold; }
+  // sample: this frame and the one before were both drawn because the view moved (no throttled or idle frames).
+  // Frame times come in steps of the display refresh (16.7 / 33 / 50 ms), so a small step down can look useless:
+  // the first step is large, one more step to the minimum is tried before giving up.
+  function adaptResolution(t0, cpu, sample) {
+    const gap = lastRenderT ? t0 - lastRenderT : 0;
+    lastRenderT = t0;
+    if (HARNESS || PR_FIXED || !sample || !gap || gap > 300) return;
+    gapAvg = gapAvg ? gapAvg * 0.8 + gap * 0.2 : gap;
+    cpuAvg = cpuAvg ? cpuAvg * 0.8 + cpu * 0.2 : cpu;
+    nSamples++;
+    if (t0 < prHold || nSamples < 10) return;
+    if (prTrial) {
+      if (gapAvg <= prTrial.gap * 0.85) prTrial = null;                                    // it helped: keep it
+      else if (motionPR > PR_MIN) { motionPR = PR_MIN; judgeAfter(t0, 600); return; }     // one more step first
+      else { motionPR = prTrial.from; prTrial = null; lowerOff = true; judgeAfter(t0, 600); return; }   // limit is not pixels
+    }
+    if (gapAvg > 25 && gapAvg - cpuAvg > 8 && motionPR > PR_MIN && !lowerOff) {
+      if (lastRaise && t0 - lastRaise.t < 5000) { motionPR = lastRaise.from; raiseOffUntil = Infinity; judgeAfter(t0, 600); return; }   // last raise was too much
+      prTrial = { from: motionPR, gap: gapAvg };
+      motionPR = Math.max(PR_MIN, motionPR * 0.6); raiseOffUntil = t0 + 15000;
+      judgeAfter(t0, 600);
+    } else if (gapAvg < 18 && motionPR < PR_MAX && t0 > raiseOffUntil) {
+      lastRaise = { t: t0, from: motionPR };
+      motionPR = Math.min(PR_MAX, motionPR * 1.15); judgeAfter(t0, 600);
+    }
+  }
+  function buildPickTrees() {
+    const list = [...new Set(pickables.map((m) => m.geometry))].filter((g) => g && !g.boundsTree && g.attributes.position);
+    let i = 0;
+    (function chunk() {
+      const t0 = performance.now();
+      while (i < list.length && performance.now() - t0 < 12) { try { list[i].computeBoundsTree(); } catch (e) { /* plain raycast */ } i++; }
+      if (i < list.length) setTimeout(chunk, 20);
+    })();
+  }
   function onFirstFrame() {
     firstFrame = true;
+    setTimeout(buildPickTrees, 600);
     const l = $('#loading'); if (l) l.classList.add('done');
     window.stationApp.ready = true;
     document.title = 'READY';
@@ -17290,7 +17693,8 @@ function createSiteWorld(A) {
     mk('tbTime', 'clock', 'Noon', 'Time of day: morning / noon / evening / night (T)');
     mk('tbSound', 'sound', 'Sound', 'Ambient sound');
     mk('tbShadow', 'shadow', 'Shadows', 'Sun shadows (slower on small devices)');
-    world = createSiteWorld({ scene, camera, controls, renderer, ctx, SIM, S, lights: lightRefs, requestRender, kick, toast, isMobile, setBuilding, onWalkChange });
+    world = createSiteWorld({ scene, camera, controls, renderer, ctx, SIM, S, lights: lightRefs, requestRender, kick, toast, isMobile, setBuilding, onWalkChange,
+      params: PARAMS, manual: MANUAL });
     $('#tbWalk').addEventListener('click', () => world.setWalk(!world.walking));
     $('#tbTime').addEventListener('click', cycleTime);
     $('#tbSound').addEventListener('click', () => { world.setSound(!world.sound); syncSiteToolbar(); });
@@ -17361,6 +17765,7 @@ function createSiteWorld(A) {
     api.render = renderFrame;
     api.sim = SIM;
     api.ctx = ctx;
+    api.renderer = renderer; api.scene = scene; api.camera = camera; api.mergeInfo = mergeInfo; api.world = world;
     api.parts = parts.map((p) => ({ id: p.id, name: p.name, system: p.system, kind: p.kind, layer: p.layer }));
     api.tour = { goto: (n) => tourGoto(n, {}), play: () => setTourPlaying(true), pause: () => setTourPlaying(false), end: endTour, steps: TOUR.length };
   }

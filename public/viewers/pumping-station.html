@@ -664,8 +664,23 @@ a.extlink:hover { text-decoration: underline; }
   .levels .lv .bar { height: 90px; }
 }
 
+/* ---------------- complete-site page: walk mode, minimap, joystick ---------------- */
+.minimap { position: fixed; right: calc(var(--inset-r) + 12px); top: calc(var(--top-h) + 64px); z-index: 16; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border-2); box-shadow: var(--shadow); background: var(--panel); }
+.minimap canvas { display: block; width: 150px; height: 300px; cursor: crosshair; }
+.minimap span { position: absolute; top: 6px; left: 8px; font: 700 11px var(--font); color: #fff; text-shadow: 0 1px 2px #000; pointer-events: none; }
+.joystick { position: fixed; left: 24px; bottom: calc(var(--foot-h) + 120px); width: 120px; height: 120px; border-radius: 50%; z-index: 26;
+  background: rgba(20, 30, 45, 0.35); border: 2px solid rgba(255, 255, 255, 0.35); touch-action: none; }
+.joystick i { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); }
+.walk-prep { position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%); z-index: 90; padding: 14px 20px; border-radius: 12px;
+  background: var(--panel-solid); border: 1px solid var(--border-2); box-shadow: var(--shadow); font-weight: 650; }
+body.walking .viewport::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4); pointer-events: none; z-index: 4; }
+body.walking .footer .foot-hint { visibility: hidden; }
+@media (max-width: 899px) { .minimap canvas { width: 100px; height: 200px; } .minimap { right: 10px; top: calc(var(--top-h) + 58px); } }
+
 </style>
-<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.6/build/index.module.js"}}</script></head><body>
 <!-- ===== st_app_body.html — markup for the pumping-station viewer (inlined by tools/build.py) ===== -->
 <svg class="sprite" aria-hidden="true" focusable="false">
   <symbol id="i-brand" viewBox="0 0 24 24"><path d="M2.5 20.5h19"/><path d="M4 20.5V9.5l5-3v14"/><path d="M9 11h11v9.5"/><path d="M13 11V7.5h3V11"/><path d="M12 15h2M16.5 15h2"/><path d="M1.8 17.6c1.2-.9 2.4-.9 3.6 0"/></symbol>
@@ -836,6 +851,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
 // ===== pump/core.js =====
 // =====================================================================
@@ -4536,7 +4552,8 @@ function makeStationMaterial(key, overrides = {}) {
          }`);
     }
   };
-  mat.customProgramCacheKey = () => `st-${proc || 'none'}-${cap ? 'cap' : 'nocap'}-${cutColor.toString(16)}`;
+  // the cut colour is a uniform, so it must not split the shader cache (fewer shaders = faster loading)
+  mat.customProgramCacheKey = () => `st-${proc || 'none'}-${cap ? 'cap' : 'nocap'}`;
   mat.userData.paletteKey = key;
   mat.userData.label = p.label;
   return mat;
@@ -4657,7 +4674,8 @@ function filletPath(points, R, arcSegs = 10, mitreSegs = 0) {
     const ang = Math.acos(Math.max(-1, Math.min(1, d1.dot(d2))));
     if (ang < 1e-3) { out.push({ p: b, smooth: false }); continue; }
     const t = R * Math.tan(ang / 2);
-    const lim = Math.min(a.distanceTo(b), c.distanceTo(b)) * 0.98;
+    // a bend may use almost all of an end segment, but only half of a segment it shares with another bend
+    const lim = Math.min(a.distanceTo(b) * (i - 1 === 0 ? 0.98 : 0.49), c.distanceTo(b) * (i + 1 === P.length - 1 ? 0.98 : 0.49));
     const tt = Math.min(t, lim), r = tt / Math.tan(ang / 2);
     const s = b.clone().addScaledVector(d1, -tt), e = b.clone().addScaledVector(d2, tt);
     const bis = d2.clone().sub(d1).normalize();
@@ -4935,6 +4953,10 @@ function buildStation(ctx) {
     typeof buildStationPumps === 'function' ? buildStationPumps : null,
     typeof buildPiping === 'function' ? buildPiping : null,
     typeof buildMech === 'function' ? buildMech : null,
+    // complete-site build only
+    typeof buildSiteCivil === 'function' ? buildSiteCivil : null,
+    typeof buildSiteElec === 'function' ? buildSiteElec : null,
+    typeof buildSiteMech === 'function' ? buildSiteMech : null,
   ];
   for (const b of builders) {
     if (!b) continue;
@@ -5766,8 +5788,11 @@ function civ_plinth(ctx) {
     civ_box(-8000, gy + 2, zs - 1200, -6800, gy + 80, F.z + 600),
     civ_box(-6798, gy + 2, zs - 1200, door.x1 + 300, gy + 80, zs),
   ];
-  ctx.addPart({ id: 'PH-RAMP', name: 'Vehicle ramp (1 in 8), access road & footpath', system: 'jackwell', kind: 'ramp', layer: 'civil',
-    object: ctx.group(ctx.mesh(merge(ramp), 'concrete'), ctx.mesh(merge(grooves), 'concreteOld'), ctx.mesh(road, 'road'), ctx.mesh(merge(path), 'pcc')),
+  // in the complete-site build the site builders lay their own roads and footpaths
+  const siteBuild = typeof SITE_MODE !== 'undefined' && SITE_MODE;
+  ctx.addPart({ id: 'PH-RAMP', name: siteBuild ? 'Vehicle ramp (1 in 8) to the rolling shutter' : 'Vehicle ramp (1 in 8), access road & footpath', system: 'jackwell', kind: 'ramp', layer: 'civil',
+    object: siteBuild ? ctx.group(ctx.mesh(merge(ramp), 'concrete'), ctx.mesh(merge(grooves), 'concreteOld'))
+      : ctx.group(ctx.mesh(merge(ramp), 'concrete'), ctx.mesh(merge(grooves), 'concreteOld'), ctx.mesh(road, 'road'), ctx.mesh(merge(path), 'pcc')),
     label: [(rx0 + rx1) / 2, -400, rz[1]] });
 }
 
@@ -6671,14 +6696,20 @@ function pip_build(ctx) {
     const bag = pip_bag(), g = new THREE.Group();
     bag.add('pipe', pipeAlong([[O.spool[0] + 1.5 + FL.dn600.thick, CL, O.z], [O.spool[1] - 1.5 - FL.dn600.thick, CL, O.z]], { od: P.dn600.od, t: P.dn600.t, radial: 48 }));
     const x0 = O.sluice[1] + 1.5 + FL.dn600.thick, xb = O.outside.x1, drop = CL - O.outside.dropToY;
-    const path = [[x0, CL, O.z], [xb, CL, O.z], [xb + drop, O.outside.dropToY, O.z], [O.outside.endX, O.outside.dropToY, O.z]];
-    bag.add('pipe', pipeAlong(path, { od: P.dn600.od, t: P.dn600.t, bendR: 1200, mitreSegs: 2, radial: 48 }));
-    bag.add('pipeInside', pipeAlong([[xb + 900, CL - 900, O.z], [xb + drop, O.outside.dropToY, O.z], [O.outside.endX - 2, O.outside.dropToY, O.z]], { od: id('dn600') - 1, t: 10, bendR: 1200, mitreSegs: 2, radial: 40 }));
+    const siteBuild = typeof SITE_MODE !== 'undefined' && SITE_MODE;
+    if (siteBuild) {
+      // complete-site build: only up to just outside the wall; site_mech.js lays the buried main from SITE.main.route
+      bag.add('pipe', pipeAlong([[x0, CL, O.z], [O.wallX + 900, CL, O.z]], { od: P.dn600.od, t: P.dn600.t, radial: 48 }));
+    } else {
+      const path = [[x0, CL, O.z], [xb, CL, O.z], [xb + drop, O.outside.dropToY, O.z], [O.outside.endX, O.outside.dropToY, O.z]];
+      bag.add('pipe', pipeAlong(path, { od: P.dn600.od, t: P.dn600.t, bendR: 1200, mitreSegs: 2, radial: 48 }));
+      bag.add('pipeInside', pipeAlong([[xb + 900, CL - 900, O.z], [xb + drop, O.outside.dropToY, O.z], [O.outside.endX - 2, O.outside.dropToY, O.z]], { od: id('dn600') - 1, t: 10, bendR: 1200, mitreSegs: 2, radial: 40 }));
+      // pedestal outside the wall and thrust blocks at the bends
+      pip_saddleSupport(bag, 8000, O.z, CL - R6, R6, 'x', true, ST.levels.ground);
+      bag.add('concrete', box(2000, 1400, 1700, xb + 300, ST.levels.ground + 500, O.z));
+      bag.add('concrete', box(1900, 1700, 1700, xb + drop + 200, O.outside.dropToY - 100, O.z));
+    }
     bag.add('pipe', pip_lx(pip_ring(R6 + 0.5, R6 + 170, O.wallX - 125, O.wallX - 105), 48).translate(0, CL, O.z));
-    // pedestal outside the wall and thrust blocks at the bends
-    pip_saddleSupport(bag, 8000, O.z, CL - R6, R6, 'x', true, ST.levels.ground);
-    bag.add('concrete', box(2000, 1400, 1700, xb + 300, ST.levels.ground + 500, O.z));
-    bag.add('concrete', box(1900, 1700, 1700, xb + drop + 200, O.outside.dropToY - 100, O.z));
     bag.into(ctx, g);
     add('DL-MAIN', 'Pumping main DN600 (MS, cement-mortar lined)', 'pumping-main', g, [7600, CL + 700, O.z]);
   }
@@ -8445,6 +8476,10 @@ const ST_CONTENT = {
   'use strict';
 
   const V3 = THREE.Vector3;
+  // fast picking: bounding-volume trees (three-mesh-bvh), built in the background after the first frame
+  THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+  THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+  THREE.Mesh.prototype.raycast = acceleratedRaycast;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -8456,6 +8491,20 @@ const ST_CONTENT = {
   const elOf = (ymm) => (ST.EL0 + ymm / 1000).toFixed(3);
   const fmtEL = (ymm) => (ymm >= -ST.EL0 * 1000 ? '+' : '') + elOf(ymm);
   const C = ST_CONTENT;
+  // complete-site page: extra content, views, tour and the 3D-world layer
+  const SITEAPP = typeof SITE !== 'undefined' && typeof createSiteWorld === 'function';
+  const SC = SITEAPP && typeof SITE_CONTENT !== 'undefined' ? SITE_CONTENT : null;
+  if (SC) {
+    Object.assign(C.systems, SC.systems || {});
+    Object.assign(C.kinds, SC.kinds || {});
+    if (SC.tour) C.tour = SC.tour;
+    if (SC.station) C.station = Object.assign({}, C.station, SC.station);
+    if (SC.notes) C.notes = SC.notes.concat(C.notes);
+    if (SC.data) C.data = C.data.concat(SC.data);
+    if (SC.procedures) C.procedures = C.procedures.concat(SC.procedures);
+    if (SC.views) Object.assign(ST.views, SC.views);
+  }
+  let world = null;
   const SYS = Object.fromEntries(ST_SYSTEMS.map((s) => [s.key, Object.assign({}, s, C.systems[s.key] || {})]));
 
   window.stationApp = window.stationApp || { ready: false };
@@ -8484,6 +8533,7 @@ const ST_CONTENT = {
   const PARAMS = parseHash();
   const MANUAL = truthy(PARAMS.manual);
   const AUTOMATION = MANUAL || PARAMS.ui === '0' || 'tour' in PARAMS || 'cam' in PARAMS;
+  const HARNESS = MANUAL || PARAMS.ui === '0';   // screenshot harness: fixed resolution, readable drawing buffer
   const isMobile = () => window.innerWidth < 900;
 
   function setTheme(t) {
@@ -8503,14 +8553,15 @@ const ST_CONTENT = {
   }
 
   // ------------------------------------------------------------------ globals
-  let renderer, labelRenderer, scene, camera, controls, ctx, parts = [], byId = new Map(), pickables = [];
+  let labelRoot = null;
+  let renderer, labelRenderer, scene, camera, controls, ctx, parts = [], byId = new Map(), pickables = [], lightRefs = null;
   let booted = false, firstFrame = false, needsRender = true, rafId = 0, lastT = 0, clock = 0, camTween = null, hoverPart = null;
   const insets = { l: 0, r: 0, t: 0, b: 0 };
   const CUT_PLANE = new THREE.Plane(new V3(0, 0, -1), 0);
   const SOIL_PLANE = new THREE.Plane(new V3(0, 0, -1), ST.terrain.soilFaceZ * MM);
   const OMEGA = 0.6 * TAU;                     // displayed shaft speed (rad/s); real 1482 rpm
 
-  const VIEWS = {
+  const VIEWS = SC && SC.viewChips ? SC.viewChips : {
     overview: { label: 'Overview', short: 'All', title: 'The whole station, river to pumping main' },
     intake: { label: 'Intake well', short: 'Intake', title: 'Intake well, inlet ports, screens and gates' },
     gravity: { label: 'Gravity main', short: 'Pipes', title: 'Two 800 mm Hume pipes from the intake to the jack well' },
@@ -8525,6 +8576,7 @@ const ST_CONTENT = {
   // ------------------------------------------------------------------ boot
   setTimeout(() => {
     try { init(); } catch (e) {
+      console.error('startup', e && e.stack ? e.stack : e);
       showError('Startup failed: ' + (e && e.message ? e.message : e));
       const l = $('#loading'); if (l) l.classList.add('done');
     }
@@ -8533,8 +8585,8 @@ const ST_CONTENT = {
   function init() {
     const vp = $('#viewport');
     const W = window.innerWidth, H = window.innerHeight;
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
-    renderer.setPixelRatio(Math.min(isMobile() ? 1.5 : 2, window.devicePixelRatio || 1));
+    renderer = new THREE.WebGLRenderer({ antialias: PARAMS.aa !== '0', alpha: true, preserveDrawingBuffer: HARNESS, logarithmicDepthBuffer: PARAMS.logdepth === '1', powerPreference: 'high-performance' });
+    renderer.setPixelRatio(pixelRatio);
     renderer.setSize(W, H);
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -8542,6 +8594,8 @@ const ST_CONTENT = {
     renderer.toneMappingExposure = 1.0;
     renderer.localClippingEnabled = true;
     renderer.domElement.className = 'gl';
+    // if the graphics context is lost (driver reset, sleep), draw every part from its own meshes from then on
+    renderer.domElement.addEventListener('webglcontextlost', () => { batchesLost = true; syncBatches(); requestRender(); });
     vp.insertBefore(renderer.domElement, vp.firstChild);
 
     labelRenderer = new CSS2DRenderer();
@@ -8553,10 +8607,11 @@ const ST_CONTENT = {
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
-    scene.add(new THREE.HemisphereLight(0xdfeeff, 0x8a8070, 0.85));
+    const hemi = new THREE.HemisphereLight(0xdfeeff, 0x8a8070, 0.85); scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xfff2dc, 2.0); sun.position.set(40, 70, 50); scene.add(sun);
     const fill = new THREE.DirectionalLight(0xbfd4ff, 0.55); fill.position.set(-50, 25, -40); scene.add(fill);
     const bounce = new THREE.DirectionalLight(0xd8cbb4, 0.35); bounce.position.set(10, -40, 15); scene.add(bounce); // soffits, undersides
+    lightRefs = { hemi, sun, fill, bounce };
     scene.fog = new THREE.Fog(0x9fb8cf, 120, 420);
     applyFog();
 
@@ -8576,7 +8631,9 @@ const ST_CONTENT = {
     // ---- geometry ----
     ctx = buildStation(createStationContext());
     scene.add(ctx.root);
+    labelRoot = new THREE.Group(); labelRoot.name = 'labels'; labelRoot.scale.setScalar(MM); scene.add(labelRoot);
     if (Array.isArray(window.__buildErrors)) window.__buildErrors.forEach((m) => showError('Geometry builder failed — ' + m));
+    if (!truthy(PARAMS.nomerge)) { try { mergeInfo = mergeStatic(ctx); } catch (e) { console.error('merge failed', e); } }
     parts = ctx.parts;
     for (const p of parts) {
       byId.set(p.id, p);
@@ -8590,6 +8647,7 @@ const ST_CONTENT = {
       });
     }
     prepareMaterials();
+    if (rigid && !truthy(PARAMS.nobatch)) { try { buildBatches(); } catch (e) { console.error('batching failed', e); } }
     buildWater();
     buildFlow();
     buildLabels();
@@ -8597,6 +8655,7 @@ const ST_CONTENT = {
     buildViewChips();
     wireUI();
     SIM.init();
+    if (SITEAPP) initSite();
     renderInfo();
     renderOps();
     exposeApi();
@@ -8607,7 +8666,9 @@ const ST_CONTENT = {
     applyVisibility();
     syncToolbar();
     setState(PARAMS, { boot: true });
+    const tFirst = performance.now();
     renderFrame();
+    window.__firstFrameMs = Math.round(performance.now() - tFirst);   // mostly shader compiling
     kick();
     window.addEventListener('hashchange', () => setState(parseHash()));
   }
@@ -8615,6 +8676,262 @@ const ST_CONTENT = {
   function applyFog() {
     if (!scene || !scene.fog) return;
     scene.fog.color.set(S.theme === 'light' ? 0xd7e4ef : 0x26364a);
+  }
+
+  // ------------------------------------------------------------------
+  // Performance: merge meshes that never move. Every mesh costs a draw call; the builders make
+  // thousands of small ones. Moving things are found by exercising every animation handle once and
+  // watching which objects change; those, and anything a handle holds directly, stay separate.
+  // Static meshes are baked into their nearest "rigid" ancestor (the part root or a moving group)
+  // and merged per material.
+  // ------------------------------------------------------------------
+  let mergeInfo = null, rigid = null;
+  function findMoving(root, anim) {
+    const objs = []; root.traverse((o) => objs.push(o));
+    const N = objs.length, T = new Float64Array(N * 10);
+    const posVer = (o) => (o.geometry && o.geometry.attributes && o.geometry.attributes.position ? o.geometry.attributes.position.version : -1);
+    objs.forEach((o, i) => {
+      const p = o.position, q = o.quaternion, sc = o.scale, k = i * 10;
+      T[k] = p.x; T[k + 1] = p.y; T[k + 2] = p.z; T[k + 3] = q.x; T[k + 4] = q.y; T[k + 5] = q.z; T[k + 6] = q.w; T[k + 7] = sc.x; T[k + 8] = sc.y; T[k + 9] = sc.z;
+    });
+    const vis = objs.map((o) => o.visible), matRef = objs.map((o) => o.material), geoRef = objs.map((o) => o.geometry), ver = objs.map(posVer);
+    const mats = new Set();
+    for (const o of objs) if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => mats.add(m));
+    const msnap = [...mats].map((m) => [m, m.color ? m.color.clone() : null, m.emissive ? m.emissive.clone() : null, m.emissiveIntensity, m.opacity, m.visible]);
+    // everything a handle refers to directly, and every function it offers
+    const held = new Set(), heldGeo = new Set(), seen = new Set(), fns = [];
+    (function walk(v, depth, owner) {
+      if (!v || depth > 6) return;
+      if (typeof v === 'function') { fns.push([v, owner]); return; }
+      if (typeof v !== 'object' || seen.has(v)) return;
+      seen.add(v);
+      if (v.isObject3D) { held.add(v); return; }
+      if (v.isBufferGeometry) { heldGeo.add(v); return; }
+      if (v.isMaterial || v.isTexture || v.isBufferAttribute) return;
+      for (const k of Object.keys(v)) walk(v[k], depth + 1, v);
+    })(anim, 0, null);
+    const moved = new Set();
+    // compare with the snapshot after EVERY call: a later call may put an object back where it started
+    const scan = () => {
+      for (let i = 0; i < N; i++) {
+        const o = objs[i];
+        if (moved.has(o)) continue;
+        const p = o.position, q = o.quaternion, sc = o.scale, k = i * 10;
+        if (p.x !== T[k] || p.y !== T[k + 1] || p.z !== T[k + 2] || q.x !== T[k + 3] || q.y !== T[k + 4] || q.z !== T[k + 5] || q.w !== T[k + 6] ||
+          sc.x !== T[k + 7] || sc.y !== T[k + 8] || sc.z !== T[k + 9] || o.visible !== vis[i] || o.material !== matRef[i] ||
+          o.geometry !== geoRef[i] || posVer(o) !== ver[i]) moved.add(o);   // a swapped geometry (crane festoon) counts too
+      }
+    };
+    // numbers only (a string or object can leave a handle's own state at NaN for good, e.g. a compressor's speed);
+    // pose objects only for pose setters (the crane)
+    const NUM = [[0.37], [1], [0.5], [0.25], [30], [0]];
+    const POSE = [[{ x: -1e9, z: -1e9, hookY: -1e9 }], [{ x: 1e9, z: 1e9, hookY: 1e9 }], [{ x: 0, z: 0, hookY: 0 }]];
+    for (const [f, owner] of fns) {
+      for (const a of (/pose/i.test(f.name || '') ? POSE : NUM)) { try { f.apply(owner, a); } catch (e) { /* not a setter */ } scan(); }
+    }
+    // put handle state back where the builders left it: the screen hoist parks at the first port, the crane at home
+    const sk = Object.keys(anim.screens || {});
+    if (sk.length && anim.screens[sk[0]].setLift) { try { anim.screens[sk[0]].setLift(0.01); anim.screens[sk[0]].setLift(0); } catch (e) { /* ignore */ } }
+    if (anim.crane && anim.crane.setPose && ST.crane && ST.crane.home) { try { anim.crane.setPose(ST.crane.home); } catch (e) { /* ignore */ } }
+    objs.forEach((o, i) => {
+      const k = i * 10;
+      o.position.set(T[k], T[k + 1], T[k + 2]); o.quaternion.set(T[k + 3], T[k + 4], T[k + 5], T[k + 6]); o.scale.set(T[k + 7], T[k + 8], T[k + 9]);
+      o.visible = vis[i]; o.material = matRef[i];
+    });
+    for (const [m, c, e, ei, op, v] of msnap) {
+      if (c !== null) m.color.copy(c); if (e !== null) m.emissive.copy(e);
+      if (ei !== undefined) m.emissiveIntensity = ei; m.opacity = op; m.visible = v;
+    }
+    for (const o of held) moved.add(o);
+    for (const o of objs) if (o.geometry && heldGeo.has(o.geometry)) moved.add(o);
+    return moved;
+  }
+  // bake a list of meshes (same material and attribute layout) into one geometry in the container's space;
+  // writes straight into the output arrays so no per-mesh copies are made
+  function bakeMerge(list, inv) {
+    const g0 = list[0].geometry, names = Object.keys(g0.attributes), indexed = !!g0.index;
+    let total = 0, totalIdx = 0;
+    for (const o of list) { total += o.geometry.attributes.position.count; if (indexed) totalIdx += o.geometry.index.count; }
+    const outs = {};
+    for (const n of names) outs[n] = new g0.attributes[n].array.constructor(total * g0.attributes[n].itemSize);
+    const idx = indexed ? (total > 65535 ? new Uint32Array(totalIdx) : new Uint16Array(totalIdx)) : null;
+    const rel = new THREE.Matrix4(), nm = new THREE.Matrix3(), e = rel.elements, q = nm.elements;
+    let off = 0, ioff = 0;
+    for (const o of list) {
+      const g = o.geometry, cnt = g.attributes.position.count;
+      rel.multiplyMatrices(inv, o.matrixWorld); nm.getNormalMatrix(rel);
+      const flip = rel.determinant() < 0;      // a mirrored transform turns triangles inside out once baked
+      for (const n of names) {
+        const src = g.attributes[n], s = src.itemSize, a = src.array, d = outs[n], base = off * s;
+        if (n === 'position') {
+          for (let i = 0; i < cnt; i++) {
+            const x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2], w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+            d[base + i * 3] = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+            d[base + i * 3 + 1] = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+            d[base + i * 3 + 2] = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+          }
+        } else if (n === 'normal') {
+          for (let i = 0; i < cnt; i++) {
+            const x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2];
+            let nx = q[0] * x + q[3] * y + q[6] * z, ny = q[1] * x + q[4] * y + q[7] * z, nz = q[2] * x + q[5] * y + q[8] * z;
+            const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+            d[base + i * 3] = nx; d[base + i * 3 + 1] = ny; d[base + i * 3 + 2] = nz;
+          }
+        } else d.set(a.subarray(0, cnt * s), base);
+        if (flip && !indexed) for (let i = 0; i + 2 < cnt; i += 3) for (let k = 0; k < s; k++) {
+          const p = base + (i + 1) * s + k, r = base + (i + 2) * s + k, t = d[p]; d[p] = d[r]; d[r] = t;
+        }
+      }
+      if (indexed) {
+        const ia = g.index.array, ic = g.index.count;
+        for (let i = 0; i < ic; i++) idx[ioff + i] = ia[i] + off;
+        if (flip) for (let i = 0; i + 2 < ic; i += 3) { const t = idx[ioff + i + 1]; idx[ioff + i + 1] = idx[ioff + i + 2]; idx[ioff + i + 2] = t; }
+        ioff += ic;
+      }
+      off += cnt;
+    }
+    const out = new THREE.BufferGeometry();
+    for (const n of names) out.setAttribute(n, new THREE.BufferAttribute(outs[n], g0.attributes[n].itemSize, g0.attributes[n].normalized));
+    if (idx) out.setIndex(new THREE.BufferAttribute(idx, 1));
+    out.computeBoundingSphere(); out.computeBoundingBox();
+    return out;
+  }
+  function mergeStatic(ctx) {
+    const t0 = performance.now();
+    const moving = findMoving(ctx.root, ctx.anim);
+    if (ctx.anim.crane && ctx.anim.crane.setPose && ST.crane && ST.crane.home) ctx.anim.crane.setPose(ST.crane.home);   // ropes & festoon back home
+    ctx.root.updateMatrixWorld(true);
+    const roots = new Set(ctx.parts.map((p) => p.object));
+    // a moving mesh stays as it is; so does everything under it
+    const frozen = new Set();
+    for (const o of moving) if (o.isMesh && !roots.has(o)) o.traverse((c) => frozen.add(c));
+    const groups = new Map(), why = {};
+    const skip = (r) => { why[r] = (why[r] || 0) + 1; };
+    let before = 0;
+    for (const part of ctx.parts) {
+      part.object.traverse((o) => {
+        if (!o.isMesh) return;
+        before++;
+        if (frozen.has(o)) return skip('moving');
+        if (o.constructor !== THREE.Mesh || Array.isArray(o.material) || !o.material) return skip('type');
+        if (Object.prototype.hasOwnProperty.call(o, 'raycast') || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender')) return skip('custom');
+        const g = o.geometry;
+        if (!g || !g.attributes.position || Object.keys(g.morphAttributes || {}).length) return skip('geometry');
+        if (g.drawRange.start !== 0 || g.drawRange.count !== Infinity) return skip('range');
+        if (Object.values(g.attributes).some((a) => a.isInterleavedBufferAttribute) || g.attributes.tangent) return skip('attrs');
+        if (g.attributes.position.itemSize !== 3 || (g.attributes.normal && g.attributes.normal.itemSize !== 3)) return skip('attrs');
+        // nearest rigid ancestor; every object on the way must be visible and not moving
+        let c = o.parent, ok = o.visible;
+        while (ok && c && !roots.has(c) && !moving.has(c)) { if (!c.visible) ok = false; c = c.parent; }
+        if (!ok || !c || (moving.has(c) && c.isMesh)) return skip(ok ? 'chain' : 'hidden');
+        const sig = Object.keys(g.attributes).sort().map((k) => `${k}${g.attributes[k].itemSize}${g.attributes[k].normalized ? 'n' : ''}${g.attributes[k].array.constructor.name}`).join(',');
+        const key = [c.uuid, o.material.uuid, sig, g.index ? 'i' : 'n', o.castShadow, o.receiveShadow, o.renderOrder, o.frustumCulled, o.userData.matKey || '', o.userData.layer || ''].join('|');
+        let G = groups.get(key);
+        if (!G) groups.set(key, (G = { container: c, material: o.material, list: [], part }));
+        G.list.push(o);
+      });
+    }
+    const inv = new THREE.Matrix4();
+    let made = 0, removed = 0;
+    for (const G of groups.values()) {
+      if (G.list.length < 2) { skip('alone'); continue; }
+      inv.copy(G.container.matrixWorld).invert();
+      const merged = bakeMerge(G.list, inv);
+      const a = G.list[0];
+      const m = new THREE.Mesh(merged, G.material);
+      m.name = (G.part.id || 'part') + ':merged';
+      m.castShadow = a.castShadow; m.receiveShadow = a.receiveShadow; m.renderOrder = a.renderOrder; m.frustumCulled = a.frustumCulled;
+      m.userData = { matKey: a.userData.matKey, partIndex: a.userData.partIndex, layer: a.userData.layer, merged: G.list.length };
+      for (const o of G.list) { o.parent.remove(o); removed++; }
+      G.container.add(m);
+      made++;
+    }
+    // drop groups left empty
+    const prune = (o) => { for (const c of [...o.children]) prune(c); if (!o.isMesh && !o.children.length && o.parent && !roots.has(o) && !moving.has(o) && o.type === 'Group') o.parent.remove(o); };
+    for (const r of roots) for (const c of [...r.children]) prune(c);
+    ctx.root.updateMatrixWorld(true);
+    let after = 0; ctx.root.traverse((o) => { if (o.isMesh) after++; });
+    rigid = { moving, frozen, roots };
+    return { before, after, merged: removed, into: made, moving: moving.size, why, ms: Math.round(performance.now() - t0) };
+  }
+
+  // ------------------------------------------------------------------
+  // Performance: static batches. Static meshes of different parts that share a material are drawn as one
+  // mesh per material and 25 m cell (one draw call). Each part keeps its own meshes on layer 1 (not drawn,
+  // but picked, highlighted, ghosted and used for walking); when a part is highlighted, ghosted or hidden,
+  // its range is left out of the batch and its own meshes are drawn instead.
+  // ------------------------------------------------------------------
+  const batches = [];
+  const CELL = 25;   // m
+  let batchesLost = false;   // after a lost WebGL context the freed batch arrays cannot be uploaded again
+  function buildBatches() {
+    const { moving, frozen, roots } = rigid;
+    const rootInv = new THREE.Matrix4().copy(ctx.root.matrixWorld).invert();
+    const sph = new THREE.Sphere(), groups = new Map();
+    for (const p of parts) {
+      if (moving.has(p.object) || !p.object.visible) continue;
+      for (const m of p.meshes) {
+        if (m.constructor !== THREE.Mesh || frozen.has(m) || moving.has(m) || Array.isArray(m.material) || !m.material) continue;
+        const mt = m.material;
+        if (mt.transparent || mt.opacity < 1 || m.renderOrder !== 0 || !m.visible) continue;
+        if (Object.prototype.hasOwnProperty.call(m, 'raycast') || Object.prototype.hasOwnProperty.call(m, 'onBeforeRender')) continue;
+        const g = m.geometry;
+        if (!g || !g.attributes.position || g.attributes.position.itemSize !== 3 || g.attributes.tangent || Object.keys(g.morphAttributes || {}).length) continue;
+        if (g.drawRange.start !== 0 || g.drawRange.count !== Infinity || Object.values(g.attributes).some((a) => a.isInterleavedBufferAttribute)) continue;
+        if (g.attributes.normal && g.attributes.normal.itemSize !== 3) continue;
+        let c = m.parent, ok = true;
+        while (c && c !== p.object) { if (!c.visible || moving.has(c)) { ok = false; break; } c = c.parent; }
+        if (!ok || !c) continue;
+        if (!g.boundingSphere) g.computeBoundingSphere();
+        sph.copy(g.boundingSphere).applyMatrix4(m.matrixWorld);
+        const cell = Math.floor(sph.center.x / CELL) + ',' + Math.floor(sph.center.z / CELL);
+        const sig = Object.keys(g.attributes).sort().map((k) => `${k}${g.attributes[k].itemSize}${g.attributes[k].normalized ? 'n' : ''}${g.attributes[k].array.constructor.name}`).join(',');
+        const key = [mt.uuid, sig, g.index ? 'i' : 'n', m.castShadow, m.receiveShadow, m.frustumCulled, p.layer, m.userData.matKey || '', cell].join('|');
+        let G = groups.get(key);
+        if (!G) groups.set(key, (G = { material: mt, layer: p.layer, list: [] }));
+        G.list.push({ m, p });
+      }
+    }
+    for (const G of groups.values()) {
+      if (G.list.length < 2) continue;
+      const geo = bakeMerge(G.list.map((r) => r.m), rootInv);
+      const ranges = []; let at = 0;
+      for (const { m, p } of G.list) {
+        const n = m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count;
+        ranges.push({ mesh: m, part: p, start: at, count: n }); at += n;
+      }
+      geo.groups = [{ start: 0, count: at, materialIndex: 0 }];
+      // the batch is never read back on the CPU: free its arrays once they are on the graphics card
+      const free = function () { this.array = null; };
+      for (const a of Object.values(geo.attributes)) a.onUpload(free);
+      if (geo.index) geo.index.onUpload(free);
+      const bm = new THREE.Mesh(geo, [G.material]);
+      const a0 = G.list[0].m;
+      bm.name = 'batch:' + (a0.userData.matKey || G.material.name || 'mat');
+      bm.castShadow = a0.castShadow; bm.receiveShadow = a0.receiveShadow; bm.frustumCulled = a0.frustumCulled;
+      bm.raycast = () => {};
+      bm.userData = { batch: true, layer: G.layer, matKey: a0.userData.matKey };
+      ctx.root.add(bm);
+      for (const r of ranges) r.mesh.layers.set(1);
+      batches.push({ mesh: bm, ranges });
+    }
+    ctx.root.updateMatrixWorld(true);
+    if (mergeInfo) mergeInfo.batches = batches.length, mergeInfo.batched = batches.reduce((s, b) => s + b.ranges.length, 0);
+  }
+  // which ranges a batch draws: a part's meshes are in the batch while they show their base material
+  function syncBatches() {
+    for (const B of batches) {
+      const gs = []; let cur = null;
+      for (const r of B.ranges) {
+        const m = r.mesh, on = !batchesLost && r.part.object.visible && m.material === m.userData.baseMat;
+        m.layers.set(on ? 1 : 0);
+        if (!on) continue;
+        if (cur && cur.start + cur.count === r.start) cur.count += r.count;
+        else gs.push((cur = { start: r.start, count: r.count, materialIndex: 0 }));
+      }
+      B.mesh.geometry.groups = gs;
+      B.mesh.visible = gs.length > 0;
+    }
   }
 
   // ------------------------------------------------------------------
@@ -8641,8 +8958,9 @@ const ST_CONTENT = {
       m = new THREE.MeshStandardMaterial({ color: base.color ? base.color.clone() : 0x888888, transparent: true, opacity: 0.13, depthWrite: false, roughness: 0.6, metalness: 0 });
     } else {
       m = cloneMat(base);
-      m.emissive = new THREE.Color(0x2a9dff);
-      m.emissiveIntensity = kind === 'hi' ? 0.5 : 0.22;
+      // unlit materials (screens, lamps) have no emissive uniform: tint their colour instead
+      if (m.emissive) { m.emissive = new THREE.Color(0x2a9dff); m.emissiveIntensity = kind === 'hi' ? 0.5 : 0.22; }
+      else if (m.color) m.color = m.color.clone().lerp(new THREE.Color(0x2a9dff), kind === 'hi' ? 0.4 : 0.18);
     }
     m.clippingPlanes = planesFor(base);
     VAR[kind].set(base, m);
@@ -8671,6 +8989,7 @@ const ST_CONTENT = {
         else m.material = variant(k, base);
       }
     }
+    syncBatches();
     requestRender();
   }
 
@@ -8685,6 +9004,8 @@ const ST_CONTENT = {
   function applyVisibility() {
     const sel = new Set(S.sel);
     for (const p of parts) p.object.visible = layerShown(p.layer) && !S.hidden.has(p.id) && (!S.isolate || sel.has(p.id) || p.layer === 'terrain');
+    syncBatches();
+    if (world && world.markShadow) world.markShadow();
     refreshLabels();
     refreshList();
     requestRender();
@@ -9140,12 +9461,12 @@ const ST_CONTENT = {
       el.addEventListener('click', (e) => { e.stopPropagation(); selectIds([p.id], { fly: true }); });
       const o = new CSS2DObject(el);
       o.position.set(p.label[0], p.label[1], p.label[2]);
-      ctx.root.add(o);
+      labelRoot.add(o);
       labels.push({ p, el, o });
     }
     const tag = (name, color, getY, x, z) => {
       const el = document.createElement('div'); el.className = 'lvtag hide'; el.style.setProperty('--c', color);
-      const o = new CSS2DObject(el); o.position.set(x, 0, z); ctx.root.add(o);
+      const o = new CSS2DObject(el); o.position.set(x, 0, z); labelRoot.add(o);
       levelTags.push({ el, o, name, getY });
     };
     const xT = ST.jackWell.r + ST.jackWell.wall + 150;
@@ -9539,6 +9860,7 @@ const ST_CONTENT = {
     if (T.t >= T.dur) camTween = null;
   }
   function setView(name, opts = {}) {
+    if (world && world.walking) return false;
     const key = String(name || 'overview').toLowerCase();
     let pos, tgt;
     if (ST.views[key]) {
@@ -9547,7 +9869,7 @@ const ST_CONTENT = {
       // keep the subject framed when panels take part of the screen
       const { tanH } = viewTangents();
       const want = Math.tan(THREE.MathUtils.degToRad(40) / 2) * (16 / 9) * 0.8;
-      const k = clamp(want / Math.max(0.2, tanH), 1, 1.5);
+      const k = v.fixed ? 1 : clamp(want / Math.max(0.2, tanH), 1, 1.5);
       pos = tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(k));
       S.view = key;
     } else if (DIRS[key]) {
@@ -9561,7 +9883,7 @@ const ST_CONTENT = {
   }
 
   // ------------------------------------------------------------------ toggles
-  function setCut(on) { S.cut = !!on; applyClipping(); applyVisibility(); updateWater(); syncToolbar(); requestRender(); }
+  function setCut(on) { S.cut = !!on; applyClipping(); if (world && world.markShadow) world.markShadow(); applyVisibility(); updateWater(); syncToolbar(); requestRender(); }
   function setXray(on) { S.xray = !!on; for (const p of parts) p.cur = null; applyMaterials(); updateWater(); syncToolbar(); }
   function setLabels(on) { S.labels = !!on; refreshLabels(); syncToolbar(); }
   function setBuilding(m) { S.building = ['full', 'cutaway', 'off'].includes(m) ? m : 'cutaway'; applyVisibility(); syncToolbar(); }
@@ -9610,8 +9932,11 @@ const ST_CONTENT = {
     if ('flow' in s) setFlow(truthy(s.flow));
     if ('run' in s && truthy(s.run) && !dutyRunning()) setRun(true, { instant: true, quiet: true });
     if (s.panel) setPanel(s.panel);
+    if (world && world.walking) world.setWalk(false);
+    if (st.time !== undefined) setTime(st.time);
     selectIds(st.sel || [], { fly: false });
-    if (st.view) setView(st.view, { instant, duration: 1.4 });
+    if (st.cam && st.tgt) { S.view = null; markChips(); flyTo(new V3(...st.cam), new V3(...st.tgt), instant ? 0 : 1.6); }
+    else if (st.view) setView(st.view, { instant, duration: 1.4 });
     if (st.demo === 'craneOut' && !SIM.crane.motorOut && !SIM.crane.seq) SIM.startCrane('out');
     if (st.demo === 'craneBack' && SIM.crane.motorOut && !SIM.crane.seq) SIM.startCrane('in');
   }
@@ -9680,6 +10005,7 @@ const ST_CONTENT = {
 
   // ------------------------------------------------------------------ picking
   const raycaster = new THREE.Raycaster();
+  raycaster.layers.enableAll();   // parts drawn through a batch keep their own meshes on layer 1
   const ndc = new THREE.Vector2();
   function pick(x, y) {
     const r = renderer.domElement.getBoundingClientRect();
@@ -9759,7 +10085,10 @@ const ST_CONTENT = {
     on('#segInfo', 'click', () => setPanel('info'));
     on('#segOps', 'click', () => setPanel('ops'));
     on('#toolbar', 'scroll', updateInsets, { passive: true });
-    on('#viewChips', 'click', (e) => { const c = e.target.closest('[data-view]'); if (c) setView(c.dataset.view); });
+    on('#viewChips', 'click', (e) => {
+      const sp = e.target.closest('[data-spot]'); if (sp && world) { world.teleport(sp.dataset.spot); return; }
+      const c = e.target.closest('[data-view]'); if (c) setView(c.dataset.view);
+    });
     on('#btnTour', 'click', () => { if (tour.active) endTour(); else tourGoto(1, { play: true }); });
     on('#tourPrev', 'click', () => tourGoto(tour.index, { play: tour.playing }));
     on('#tourNext', 'click', () => tourGoto(tour.index + 2, { play: tour.playing }));
@@ -9820,7 +10149,7 @@ const ST_CONTENT = {
       if (!d || d.b !== 0) return;
       if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 || performance.now() - d.t > 700) return;
       const p = pick(e.clientX, e.clientY);
-      if (p) selectIds([p.id], { fly: true }); else if (S.sel.length) clearSelection();
+      if (p) selectIds([p.id], { fly: !(world && world.walking) }); else if (S.sel.length) clearSelection();
     });
     cv.addEventListener('pointermove', (e) => {
       if (e.pointerType === 'touch') return;
@@ -9891,6 +10220,9 @@ const ST_CONTENT = {
     if (has('isolate')) { S.isolate = truthy(o.isolate) && S.sel.length > 0; applyVisibility(); applyMaterials(); }
     if (has('view') && o.view) setView(o.view, { instant: !anim });
     if (has('cam')) { const c = parseVec(o.cam), t = parseVec(o.tgt) || controls.target.toArray(); if (c) { S.view = null; markChips(); flyTo(new V3(...c), new V3(...t), anim ? 1.2 : 0); } }
+    if (has('time') && world) setTime(parseFloat(o.time) || 12.5);
+    if (has('walk') && world) world.setWalk(truthy(o.walk), has('spot') ? String(o.spot) : undefined);
+    else if (has('spot') && world && world.walking) world.teleport(String(o.spot));
     if (has('tour')) { const n = parseInt(o.tour, 10); if (n > 0) tourGoto(n, { instant: !anim, play: truthy(o.tourplay) }); else endTour(); }
     if (opts.boot && !camKeys) setView('overview', { instant: true });
     scheduleHash(); requestRender();
@@ -9919,7 +10251,7 @@ const ST_CONTENT = {
   }
 
   // ------------------------------------------------------------------ frame loop
-  let inStep = false, uiTimer = 0;
+  let inStep = false, uiTimer = 0, motionUntil = 0, motionFramePrev = false;
   function requestRender() { needsRender = true; kick(); }
   function kick() { if (MANUAL || !booted || rafId) return; rafId = requestAnimationFrame(tick); }
   function tick(now) {
@@ -9928,16 +10260,32 @@ const ST_CONTENT = {
     lastT = now;
     const active = advance(dt);
     const moving = controls.update();
-    if (needsRender || moving) renderFrame();
+    const viewMoved = moving || !!camTween || !!(world && world.walking && now - (world.lastMove || 0) < 250);
+    if (viewMoved) motionUntil = now + 250;
+    else if (pixelRatio !== PR_MAX && now > motionUntil) needsRender = true;     // view stopped: redraw sharp
+    if (needsRender || moving) { renderFrame(viewMoved && motionFramePrev); motionFramePrev = viewMoved; }
+    else motionFramePrev = false;
     if (active || moving) kick(); else lastT = 0;
   }
-  let frameAcc = 0;
+  let frameAcc = 0, travelSig = 0, travelWas = false, travelShadowT = 0;
   function advance(dt) {
     clock += dt;
     let active = true;                      // the station is always "live": water, levels, sim
     if (camTween) { stepCamTween(dt); needsRender = true; }
     SIM.step(dt);
+    if (world) { if (SITEAPP) stepSiteSim(dt); if (world.update(dt)) needsRender = true; }
     const screens = stepScreens(dt);
+    // site page, static shadow map: redraw while gates, valves or screens travel (4 times a second) and once more
+    // when they stop, so the final position is in the shadows too
+    if (world && world.markShadow) {
+      let sig = 0, n = 0;
+      for (const v of Object.values(SIM.valves)) sig += ++n * v.pos;
+      for (const g of Object.values(SIM.gates)) sig += ++n * g.pos;
+      const travel = !!screens || Math.abs(sig - travelSig) > 1e-7;
+      travelSig = sig;
+      if (travel || travelWas) { travelShadowT += dt; if (!travel || travelShadowT > 0.25) { travelShadowT = 0; world.markShadow(); } }
+      travelWas = travel;
+    }
     updateWater();
     updateFlow(dt);
     water.uTime.value = clock;
@@ -9945,7 +10293,7 @@ const ST_CONTENT = {
     const moving = SIM.crane.seq || screens || SIM.prvQ > 0 || (S.flow && SIM.anyFlow()) || SIM.running().length ||
       Object.values(SIM.valves).some((v) => v.pos !== v.target) || Object.values(SIM.gates).some((g) => g.pos !== g.target);
     frameAcc += dt;
-    if (frameAcc >= (moving ? 1 / 40 : 1 / 12)) { frameAcc = 0; needsRender = true; }
+    if (frameAcc >= (moving ? 1 / 30 : 1 / 12)) { frameAcc = 0; needsRender = true; }
     uiTimer += dt;
     if (uiTimer > 0.25) {
       uiTimer = 0;
@@ -9968,24 +10316,157 @@ const ST_CONTENT = {
     renderFrame();
     return getState();
   }
-  function renderFrame() {
+  function renderFrame(sample = false) {
     if (!renderer) return;
     needsRender = false;
     const dist = camera.position.distanceTo(controls.target);
-    camera.near = clamp(dist / 400, 0.02, 1.0);
+    // walking keeps the eye >= 0.32 m from walls, so a larger near plane gives more depth precision there
+    camera.near = clamp(dist / 400, world && world.walking ? 0.1 : 0.02, 1.0);
     camera.far = Math.max(600, dist * 8);
     camera.updateProjectionMatrix();
+    const c0 = performance.now();
+    if (!HARNESS && !PR_FIXED) {
+      const want = c0 < motionUntil ? motionPR : PR_MAX;
+      if (want !== pixelRatio) { pixelRatio = want; renderer.setPixelRatio(want); }   // resize BEFORE drawing: a resize clears the canvas
+    }
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
+    adaptResolution(c0, performance.now() - c0, sample);
+    labelRenderer.render(labelRoot, camera);   // only the label objects, not the whole scene
     declutterLabels();
     if (!firstFrame) onFirstFrame();
   }
+  // Adaptive resolution while the view moves: on slow graphics, orbiting / zooming / walking is drawn with fewer
+  // pixels (only if that really makes frames faster); as soon as the view stops, the frame is redrawn sharp.
+  const PR_FIXED = parseFloat(PARAMS.pr) > 0 ? clamp(parseFloat(PARAMS.pr), 0.3, 3) : 0;   // #pr=1 fixes the resolution
+  const PR_MAX = PR_FIXED || Math.min(1.5, window.devicePixelRatio || 1), PR_MIN = Math.min(PR_MAX, 0.6);
+  let pixelRatio = PR_MAX, motionPR = PR_MAX, lastRenderT = 0, gapAvg = 0, cpuAvg = 0, nSamples = 0, prHold = 0,
+    prTrial = null, lowerOff = false, raiseOffUntil = 0, lastRaise = null;
+  function judgeAfter(t0, hold) { gapAvg = 0; cpuAvg = 0; nSamples = 0; prHold = t0 + hold; }
+  // sample: this frame and the one before were both drawn because the view moved (no throttled or idle frames).
+  // Frame times come in steps of the display refresh (16.7 / 33 / 50 ms), so a small step down can look useless:
+  // the first step is large, one more step to the minimum is tried before giving up.
+  function adaptResolution(t0, cpu, sample) {
+    const gap = lastRenderT ? t0 - lastRenderT : 0;
+    lastRenderT = t0;
+    if (HARNESS || PR_FIXED || !sample || !gap || gap > 300) return;
+    gapAvg = gapAvg ? gapAvg * 0.8 + gap * 0.2 : gap;
+    cpuAvg = cpuAvg ? cpuAvg * 0.8 + cpu * 0.2 : cpu;
+    nSamples++;
+    if (t0 < prHold || nSamples < 10) return;
+    if (prTrial) {
+      if (gapAvg <= prTrial.gap * 0.85) prTrial = null;                                    // it helped: keep it
+      else if (motionPR > PR_MIN) { motionPR = PR_MIN; judgeAfter(t0, 600); return; }     // one more step first
+      else { motionPR = prTrial.from; prTrial = null; lowerOff = true; judgeAfter(t0, 600); return; }   // limit is not pixels
+    }
+    if (gapAvg > 25 && gapAvg - cpuAvg > 8 && motionPR > PR_MIN && !lowerOff) {
+      if (lastRaise && t0 - lastRaise.t < 5000) { motionPR = lastRaise.from; raiseOffUntil = Infinity; judgeAfter(t0, 600); return; }   // last raise was too much
+      prTrial = { from: motionPR, gap: gapAvg };
+      motionPR = Math.max(PR_MIN, motionPR * 0.6); raiseOffUntil = t0 + 15000;
+      judgeAfter(t0, 600);
+    } else if (gapAvg < 18 && motionPR < PR_MAX && t0 > raiseOffUntil) {
+      lastRaise = { t: t0, from: motionPR };
+      motionPR = Math.min(PR_MAX, motionPR * 1.15); judgeAfter(t0, 600);
+    }
+  }
+  function buildPickTrees() {
+    const list = [...new Set(pickables.map((m) => m.geometry))].filter((g) => g && !g.boundsTree && g.attributes.position);
+    let i = 0;
+    (function chunk() {
+      const t0 = performance.now();
+      while (i < list.length && performance.now() - t0 < 12) { try { list[i].computeBoundsTree(); } catch (e) { /* plain raycast */ } i++; }
+      if (i < list.length) setTimeout(chunk, 20);
+    })();
+  }
   function onFirstFrame() {
     firstFrame = true;
+    setTimeout(buildPickTrees, 600);
     const l = $('#loading'); if (l) l.classList.add('done');
     window.stationApp.ready = true;
     document.title = 'READY';
     if (!AUTOMATION) setTimeout(() => { document.title = 'Raw Water Pumping Station — 3D model'; }, 5000);
+  }
+
+  // ------------------------------------------------------------------
+  // Complete-site page: 3D world, walk mode, time of day, site simulation
+  // ------------------------------------------------------------------
+  const SITE_ICONS = '<symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="1.8"/><path d="M11.5 8.5l-2.8 3.2 1.2 1.4"/><path d="M12.6 8.3l1.3 5.2-2.6 3.8-.9 4.2"/><path d="M13.9 13.5l2.6 2.4.6 4.6"/><path d="M12.7 9.8l3.1 2 2.4-.6"/></symbol>' +
+    '<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/></symbol>' +
+    '<symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5l4.5 4V5.5l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>' +
+    '<symbol id="i-shadow" viewBox="0 0 24 24"><circle cx="9" cy="9" r="4"/><path d="M4 20h16M8 20l4-6h6"/></symbol>';
+  const TIMES = [[7.0, 'Morning'], [12.5, 'Noon'], [17.6, 'Evening'], [21.0, 'Night']];
+  function initSite() {
+    const h1 = $('.brand h1'); if (h1) h1.innerHTML = '<span class="t-main">Raw Water Intake</span><span class="t-model"> — complete site, 3D world</span>';
+    const sub = $('.subtitle'); if (sub && SC && SC.subtitle) sub.textContent = SC.subtitle;
+    const foot = $('.foot-note'); if (foot && SC && SC.footNote) foot.textContent = SC.footNote;
+    const sprite = $('svg.sprite'); if (sprite) sprite.insertAdjacentHTML('beforeend', SITE_ICONS);
+    const tb = $('#toolbar'), before = $('#tbOps');
+    const mk = (id, ico, txt, title) => {
+      const b = document.createElement('button'); b.className = 'tb'; b.id = id; b.type = 'button'; b.title = title; b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = `<svg class="i"><use href="#i-${ico}"/></svg><span id="${id}Txt">${txt}</span>`; tb.insertBefore(b, before); return b;
+    };
+    mk('tbWalk', 'walk', 'Walk', 'Walk around the site in first person (V)');
+    mk('tbTime', 'clock', 'Noon', 'Time of day: morning / noon / evening / night (T)');
+    mk('tbSound', 'sound', 'Sound', 'Ambient sound');
+    mk('tbShadow', 'shadow', 'Shadows', 'Sun shadows (slower on small devices)');
+    world = createSiteWorld({ scene, camera, controls, renderer, ctx, SIM, S, lights: lightRefs, requestRender, kick, toast, isMobile, setBuilding, onWalkChange,
+      params: PARAMS, manual: MANUAL });
+    $('#tbWalk').addEventListener('click', () => world.setWalk(!world.walking));
+    $('#tbTime').addEventListener('click', cycleTime);
+    $('#tbSound').addEventListener('click', () => { world.setSound(!world.sound); syncSiteToolbar(); });
+    $('#tbShadow').addEventListener('click', () => { world.setShadows(!world.shadows); syncSiteToolbar(); });
+    window.addEventListener('keydown', (e) => {
+      const tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.toLowerCase() === 'v') world.setWalk(!world.walking);
+      else if (e.key.toLowerCase() === 't' && !world.walking) cycleTime();
+    });
+    setTime(12.5);
+    for (const k of ['CH-NRV', 'CH-BFV', 'CH-SV', 'CH-AV']) { const h = ctx.anim.valves && ctx.anim.valves[k]; if (h && h.setOpen) { try { h.setOpen(k === 'CH-SV' ? 0 : 1); } catch (e) { /* ignore */ } } }
+    SIM.totalVol = 0; SIM.airVesselLevel = 0.52; SIM.compRunning = false;
+    syncSiteToolbar();
+  }
+  function cycleTime() { const i = TIMES.findIndex(([h]) => Math.abs(h - world.time) < 0.3); setTime(TIMES[(i + 1) % TIMES.length][0]); }
+  function setTime(h) {
+    if (!world) return;
+    world.setTime(h);
+    const t = TIMES.find(([x]) => Math.abs(x - h) < 0.3), el = $('#tbTimeTxt');
+    if (el) el.textContent = t ? t[1] : `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+  }
+  function syncSiteToolbar() {
+    if (!world) return;
+    const set = (id, on) => { const e = $(id); if (e) e.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    set('#tbWalk', world.walking); set('#tbSound', world.sound); set('#tbShadow', world.shadows);
+  }
+  function onWalkChange(on) {
+    syncSiteToolbar();
+    if (on) $('#viewChips').innerHTML = world.spots.map((s) => `<button class="chip" type="button" data-spot="${esc(s)}">${esc(s)}</button>`).join('');
+    else { buildViewChips(); markChips(); }
+    // walking is full-screen: fold the side panels away and bring them back afterwards
+    if (on) { S.walkPanels = [S.leftOpen, S.rightOpen]; S.leftOpen = false; S.rightOpen = false; applyPanels(); }
+    else if (S.walkPanels) { if (!isMobile()) { [S.leftOpen, S.rightOpen] = S.walkPanels; applyPanels(); } S.walkPanels = null; }
+    updateInsets();
+  }
+  function stepSiteSim(dt) {
+    const out = SIM.totalOut();
+    SIM.totalVol = (SIM.totalVol || 0) + out * dt * TIME_SCALE;
+    // the air cushion slowly dissolves (water level rises); the compressor tops the air back up
+    SIM.airVesselLevel = clamp((SIM.airVesselLevel ?? 0.5) + dt * (SIM.compRunning ? -0.012 : 0.0025) + (SIM.prvQ > 0 ? 0.01 * dt : 0), 0.2, 0.85);
+    if (!SIM.compRunning && SIM.airVesselLevel > 0.62) { SIM.compRunning = true; SIM.log('Air vessel water level high — air compressor 1 started'); }
+    if (SIM.compRunning && SIM.airVesselLevel < 0.45) { SIM.compRunning = false; SIM.log('Air vessel level normal — compressor stopped'); }
+    const lv = ctx.anim.airVesselLevel || (ctx.anim.misc && ctx.anim.misc.airVesselLevel);
+    if (lv && lv.setLevel) lv.setLevel(SIM.airVesselLevel);
+    (ctx.anim.compressors || []).forEach((c, i) => {
+      const on = SIM.compRunning && i === 0;
+      if (c.setRun && c._on !== on) { try { c.setRun(on); } catch (e) { /* ignore */ } c._on = on; }
+      if (c.step) { try { c.step(dt); } catch (e) { /* ignore */ } }
+    });
+    const fm = ctx.anim.fm; if (fm && fm.setValue) fm.setValue(out * 3600);
+    const g = ctx.anim.gauges && ctx.anim.gauges['AIR-VESSEL']; if (g && g.setValue) g.setValue(SIM.header);
+    // service-water pumps keep the overhead tank topped up: ~25 s every 2 minutes
+    SIM.svcT = ((SIM.svcT || 0) + dt) % 120;
+    const svcOn = SIM.svcT < 25, U = ctx.anim.utilities || {};
+    if (U.service && U.service.setRun && SIM.svcOn !== svcOn) { try { U.service.setRun(svcOn); } catch (e) { /* ignore */ } SIM.svcOn = svcOn; }
+    if (U.dewater && U.dewater.setRun && SIM.dwInit !== true) { try { U.dewater.setRun(false); } catch (e) { /* ignore */ } SIM.dwInit = true; }
   }
 
   // ------------------------------------------------------------------ API
@@ -9999,6 +10480,7 @@ const ST_CONTENT = {
     api.render = renderFrame;
     api.sim = SIM;
     api.ctx = ctx;
+    api.renderer = renderer; api.scene = scene; api.camera = camera; api.mergeInfo = mergeInfo; api.world = world;
     api.parts = parts.map((p) => ({ id: p.id, name: p.name, system: p.system, kind: p.kind, layer: p.layer }));
     api.tour = { goto: (n) => tourGoto(n, {}), play: () => setTourPlaying(true), pause: () => setTourPlaying(false), end: endTour, steps: TOUR.length };
   }
