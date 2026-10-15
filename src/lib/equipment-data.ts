@@ -101,4 +101,41 @@ EQUIPMENT['raw-water-pumping-station'] = {
   note: 'Illustrative model of a typical raw-water intake pumping station. Sizes follow the project documents where given; other parts are drawn at typical proportions.',
 };
 
+EQUIPMENT['raw-water-intake-site'] = {
+  id: 'raw-water-intake-site',
+  name: 'Raw Water Intake — Complete Site',
+  category: 'Pumping stations',
+  tagline: 'Walk through the whole intake compound, from the 33 kV line at the gate to the intake well in the river, by day or by night.',
+  summary:
+    'The complete permanent site around a river intake, laid out on a real plot shape of about 1800 m²: the intake well and footbridge in the river, the pump house over the jack well, a 33 kV overhead line and DP structure, HT metering, the 33 kV breaker, a 2500 kVA 33/6.6 kV transformer yard, the HT room with 6.6 kV switchboard and soft starters, the control room with LT panels, batteries, PLC and SCADA, a 20 m³ air vessel with two compressors, the buried 600 mm pumping main with five valve chambers, and the compound wall, gate, security room, road, drains, cable trench, lighting and earthing.',
+  viewerSrc: '/viewers/intake-site.html',
+  stats: [
+    { value: '≈1800', unit: 'm²', label: 'Plot area' },
+    { value: '1252', unit: 'm³/h', label: 'Station output' },
+    { value: '2500', unit: 'kVA', label: '33/6.6 kV transformer' },
+    { value: '3 × 650', unit: 'kW', label: 'VT pumps (2W + 1S)' },
+    { value: '20', unit: 'm³', label: 'Air vessel' },
+    { value: '5', label: 'Valve chambers' },
+  ],
+  features: [
+    { title: 'Walk mode', text: 'Walk through the site at eye level with W A S D or the on-screen joystick, go up steps and into the rooms, or jump to any spot from the minimap.' },
+    { title: 'Day and night', text: 'Change the time of day: the sun moves, shadows follow, and the street lights, flood lights and room lights come on at dusk.' },
+    { title: 'Live SCADA screens', text: 'The SCADA desk, panel displays and flow meter show the running station live: levels, flows, pressures and pump status.' },
+    { title: 'Everything running', text: 'Pumps turn, compressors cut in when the air vessel needs air, valves and panel lamps follow the simulation, and there is sound you can switch on.' },
+    { title: 'Guided tour', text: 'A 16-step tour from the gate and 33 kV incoming, past the valve chambers, air vessel and transformer, into the control room and down to the river.' },
+    { title: 'Every part explained', text: 'Click any of about 170 parts for what it is, how it works and its key data; X-ray the ground to see the buried main and chambers.' },
+  ],
+  learn: [
+    '33 kV incoming, DP structure and metering',
+    'Transformer yard, NGR and earthing',
+    'HT switchboard, soft starters and LT panels',
+    'PLC, SCADA and the control room',
+    'Air vessel and compressors for surge protection',
+    'Buried pumping main and valve chambers',
+    'Flow meter, air valve, butterfly and scour valves',
+    'Site layout: road, drains, cable trench and lighting',
+  ],
+  note: 'Illustrative model of a typical raw-water intake site. The plot outline follows a real plot shape; buildings and equipment are drawn at typical sizes and arrangements.',
+};
+
 export const EQUIPMENT_LIST = Object.values(EQUIPMENT);
