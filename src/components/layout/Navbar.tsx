@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AUTHOR } from '@/lib/site';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, GraduationCap, Settings2, Menu, X, Cpu, Search, Factory } from 'lucide-react';
 
@@ -27,8 +28,11 @@ export function Navbar() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 transition-all duration-300 group-hover:cyan-glow group-hover:bg-primary/20">
               <Cpu className="h-5 w-5 animate-pulse" />
             </div>
-            <span className="font-semibold text-lg tracking-wide bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
-              ValveHub
+            <span className="flex flex-col leading-tight">
+              <span className="font-semibold text-lg tracking-wide bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
+                ValveHub
+              </span>
+              <span className="text-[11px] font-medium text-muted-foreground tracking-wide">by {AUTHOR}</span>
             </span>
           </Link>
 

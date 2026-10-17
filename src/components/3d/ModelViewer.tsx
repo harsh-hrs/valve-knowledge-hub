@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Lightformer, ContactShadows } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ValveModel } from './ValveModels';
+import { CreatorMark } from './CreatorMark';
 import { getValve3D } from '@/lib/valve-3d-data';
 import {
   Maximize2,
@@ -170,12 +171,13 @@ export function ModelViewer({ valveId, selected, onSelect }: ModelViewerProps) {
 
       <div className="flex-1" />
 
-      {/* Hint badge */}
-      <div className="relative z-10 px-3 sm:px-4 pointer-events-none">
+      {/* Hint badge + creator's mark */}
+      <div className="relative z-10 px-3 sm:px-4 pointer-events-none flex items-end justify-between gap-2">
         <div className="glass-panel inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] text-muted-foreground border border-white/10">
           <Move3d className="h-3.5 w-3.5 text-primary/70" />
           Drag to orbit · pinch / scroll to zoom
         </div>
+        <CreatorMark />
       </div>
 
       {/* Bottom control deck */}

@@ -1,5 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Harsh Raj Singh">
 <title>Vertical Turbine Pump 3D</title>
 <style>
 /* =====================================================================
@@ -462,6 +463,19 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .footer span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
+/* ---------------- creator's mark: HRS = Harsh Raj Singh ---------------- */
+.hrs-sign {
+  position: fixed; left: calc(var(--inset-l) + 12px); top: calc(var(--top-h) + 62px); z-index: 11;
+  width: 44px; height: 44px; border-radius: 50%; background: var(--panel); box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); user-select: none; -webkit-user-select: none;
+}
+.hrs-sign svg { display: block; width: 100%; height: 100%; }
+.hrs-sign .r1 { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.hrs-sign .r2 { fill: none; stroke: var(--accent); stroke-width: 0.75; opacity: 0.55; }
+.hrs-sign text { fill: var(--text); font-family: var(--font); font-size: 12.5px; font-weight: 800; letter-spacing: 0.04em; }
+@media (max-width: 899px) { .hrs-sign { left: 16px; top: calc(var(--top-h) + 60px); width: 40px; height: 40px; } }
+body.ui-off .hrs-sign { left: auto; top: auto; right: 20px; bottom: 20px; }
+
 /* ---------------- tooltip, loading, errors ---------------- */
 .tooltip {
   position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; max-width: 340px;
@@ -611,6 +625,10 @@ body.ui-off .tour-card p { font-size: 15px; }
 <nav id="viewbar" class="viewbar" aria-label="View presets">
   <div class="chips" id="viewChips"></div>
 </nav>
+
+<div class="hrs-sign" role="img" aria-label="3D model by Harsh Raj Singh (HRS)" title="3D model by Harsh Raj Singh">
+  <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="r1" cx="22" cy="22" r="20.75"/><circle class="r2" cx="22" cy="22" r="17.25"/><text x="22" y="26.4" text-anchor="middle">HRS</text></svg>
+</div>
 
 <aside id="partsPanel" class="panel panel-left" aria-label="Parts">
   <div class="panel-head">

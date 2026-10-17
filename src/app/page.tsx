@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Factory
 } from 'lucide-react';
+import { AUTHOR } from '@/lib/site';
 
 // Valve data for interactive search/showcase path
 const VALVES = [
@@ -206,6 +207,9 @@ export default function Home() {
           </h1>
           <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
             Bridge academic theory and piping station metrics. Interact with high-fidelity WebGL models, run flow velocity math, and study components in real time.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Created by <span className="text-foreground font-semibold">{AUTHOR}</span>
           </p>
           <div className="flex flex-wrap items-center gap-4 mt-2">
             <Link
