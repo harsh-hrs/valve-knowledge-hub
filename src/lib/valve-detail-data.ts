@@ -64,7 +64,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     ],
     advantages: [
       'Minimal pressure drop and friction loss when fully open',
-      'Excellent bi-directional bubble-tight metal-to-metal sealing',
+      'Reliable bi-directional metal-to-metal sealing (API 598 metal-seat leakage class)',
       'Straight-through flow path reduces turbulence and fluid erosion'
     ],
     limitations: [
@@ -97,7 +97,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     failureModes: [
       { mode: 'Thermal Binding', cause: 'The valve is closed tight while hot; subsequent cooling contracts the body faster than the wedge, jamming the gate.', prevention: 'Avoid overtightening when hot, or install flexible wedge designs or bypass purge lines.' },
       { mode: 'Seat Wire-Drawing (Erosion)', cause: 'Using the valve for throttling allows high-velocity fluid to cut channels across the seats.', prevention: 'Enforce strict operational rules prohibiting partial open states.' },
-      { mode: 'Pressure Lockup', cause: 'Liquid trapped in the bonnet cavity expands due to process heat, raising pressure beyond limits.', prevention: 'Drill a small pressure relief hole in the upstream face of the gate wedge.' }
+      { mode: 'Pressure Lockup', cause: 'Liquid trapped in the bonnet cavity expands due to process heat, raising pressure beyond limits.', prevention: 'Drill a small pressure relief hole in the upstream face of the gate wedge. Note: the hole makes the valve unidirectional — install with the hole on the upstream side.' }
     ],
     comparison: {
       summary: 'Compared to Globe Valves, Gate Valves offer significantly lower flow resistance but are entirely unsuitable for throttling applications.',
@@ -114,7 +114,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     category: 'Isolation',
     subcategory: 'Butterfly',
     overview: 'A Triple Offset Butterfly Valve is a high-performance, quarter-turn rotary valve designed for tight isolation in severe service. By utilizing three independent offsets (eccentricities) in the shaft and seating geometry, it achieves frictionless rotation until the exact point of closure. This eliminates seat wear, reduces operating torque, and allows bubble-tight metal-to-metal shutoff at extreme temperatures and pressures.',
-    workingPrinciple: 'The stem is offset from the center of the valve bore (Offset 1) and from the disc sealing plane (Offset 2). Additionally, the sealing cone axis is inclined relative to the shaft axis (Offset 3). During rotation, these offsets create a camming effect, lifting the disc completely clear of the seat throughout its 90-degree travel. Sealing is achieved by mechanical compression of the laminated seal ring against the solid seat, rather than friction, ensuring bi-directional tight shutoff.',
+    workingPrinciple: 'The stem is set behind the disc sealing plane (Offset 1) and offset from the centerline of the valve bore (Offset 2). Additionally, the sealing cone axis is inclined relative to the bore (pipe) centerline (Offset 3), making the seat a section of an oblique cone. During rotation, these offsets create a camming effect, lifting the disc completely clear of the seat throughout its 90-degree travel. Sealing is achieved by mechanical compression of the laminated seal ring against the solid seat, rather than friction, ensuring bi-directional tight shutoff.',
     applications: [
       'High-pressure steam isolation and process distribution lines',
       'LNG cryogenic storage and transport terminals',
@@ -146,7 +146,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       'API 609 (Butterfly Valves: Double Flanged, Lug and Wafer Type)',
       'ASME B16.34 (Valves - Flanged, Threaded, and Welding End)',
       'API 598 (Valve Testing)',
-      'API 607 (Fire Test for Soft-Seated Quarter-Turn Valves)'
+      'API 6FA / ISO 10497 (Fire Type-Testing of Valves)'
     ],
     maintenance: [
       { interval: 'Quarterly', action: 'Inspect the valve shaft bearings and clean the packing box area.', rationale: 'Prevents stem contamination and extends packing life.' },
@@ -162,7 +162,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       metrics: [
         { parameter: 'Weight & Footprint', thisValveValue: 'Very Low (Wafer/Lug design)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'Very High (Bolted Bonnet design)' },
         { parameter: 'Flow Interference', thisValveValue: 'Moderate (Disc sits in flow stream)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'Zero (Wedge lifts completely clear)' },
-        { parameter: 'Operating Torque', thisValveValue: 'Low (Balanced rotary design)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'High (Friction-dominated sliding wedge)' }
+        { parameter: 'Operating Torque', thisValveValue: 'Low (Offset cam geometry — no seat rubbing)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'High (Friction-dominated sliding wedge)' }
       ]
     }
   },
@@ -171,7 +171,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     name: 'Floating Ball Valve',
     category: 'Isolation',
     subcategory: 'Ball',
-    overview: 'A Floating Ball Valve is a quarter-turn rotary valve containing a spherical bore. The ball is suspended between two soft seat rings, utilizing upstream fluid pressure to float the ball downstream and establish a tight seal. Extremely popular for fast on-off isolation, full-port options match the pipe inside diameter, resulting in near-zero pressure drop.',
+    overview: 'A Floating Ball Valve is a quarter-turn rotary valve whose closure member is a sphere with a cylindrical bore (port) through it. The ball is suspended between two soft seat rings, utilizing upstream fluid pressure to float the ball downstream and establish a tight seal. Extremely popular for fast on-off isolation, full-port options match the pipe inside diameter, resulting in near-zero pressure drop.',
     workingPrinciple: 'A slot in the top of the ball engages with the stem. Turning the stem 90 degrees rotates the ball bore relative to the flow passage. In the closed position, fluid pressure pushes the ball slightly downstream. The ball slides into the downstream soft seat, compressing the polymer material to establish a bubble-tight, positive seal. Because the ball floats, operating torque increases proportionally with line pressure.',
     applications: [
       'Process chemical plant isolation and utility headers',
@@ -214,10 +214,10 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     failureModes: [
       { mode: 'Seat Cutting / Tearing', cause: 'Fluid particulates score the soft polymer seats during opening/closing under high differential pressure.', prevention: 'Install metal-seated ball valves or filter process fluid upstream.' },
       { mode: 'Stem Leakage', cause: 'Repeated rotary cycles wear down the stem packing rings.', prevention: 'Adjust the packing gland or use live-loaded Belleville springs.' },
-      { mode: 'Bonnet/Cavity Overpressure', cause: 'Liquid trapped in the ball cavity vaporizes due to external heating, expanding and blowing out seats.', prevention: 'Install a cavity relief valve or drill a vent hole on the upstream side of the ball.' }
+      { mode: 'Body Cavity Overpressure', cause: 'Liquid trapped in the ball cavity vaporizes due to external heating, expanding and blowing out seats.', prevention: 'Install a cavity relief valve or drill a vent hole on the upstream side of the ball.' }
     ],
     comparison: {
-      summary: 'Compared to Gate Valves, Ball Valves offer much faster operational speeds and compact sizes but are more expensive in larger diameters and are temperature-restricted by polymer seats.',
+      summary: 'Compared to Gate Valves, Ball Valves offer much faster operational speeds and compact sizes but are more expensive in larger diameters (the quarter-turn cost advantage holds in small-to-mid bores) and are temperature-restricted by polymer seats.',
       metrics: [
         { parameter: 'Operational Stroke', thisValveValue: 'Fast (90-degree rotary travel)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'Slow (Multi-turn linear travel)' },
         { parameter: 'Temperature Boundary', thisValveValue: 'Medium (Up to 200°C with PTFE / 260°C with PEEK)', alternativeValveName: 'Wedge Gate Valve', alternativeValveValue: 'Very High (Up to 538°C with metal-to-metal seats)' },
@@ -230,8 +230,8 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     name: 'Standard Globe Valve',
     category: 'Control',
     subcategory: 'Globe',
-    overview: 'A Standard Globe Valve utilizes a spherical body cavity containing a Z-shaped flow path. Designed specifically for regulating, throttling, and controlling fluid flow rates. Unlike gate valves, the disc of a globe valve can be positioned at any point along its stroke to achieve precise flow characteristics. The tortuous Z-path forces the fluid to change direction twice, creating a high pressure drop and turbulence, which aids in stable control but increases energy losses.',
-    workingPrinciple: 'A contoured plug or disc is mounted at the end of the stem. The stem drives the plug linearly perpendicular to a flat or tapered seat ring centered inside the flow cavity. As the plug moves closer to the seat ring, the annular flow area decreases, throttling flow. The linear distance between plug and seat directly determines the flow rate, allowing predictable control loops.',
+    overview: 'A Standard Globe Valve utilizes a spherical body cavity containing a Z-shaped flow path. Designed specifically for regulating, throttling, and controlling fluid flow rates. Unlike gate valves, the disc of a globe valve can be positioned at any point along its stroke to achieve precise flow characteristics. The tortuous Z-path forces the fluid to change direction twice, creating a high permanent pressure drop. The seat-perpendicular plug arrangement is what enables precise, stable throttling, at the cost of these energy losses.',
+    workingPrinciple: 'A contoured plug or disc is mounted at the end of the stem. The stem drives the plug linearly perpendicular to a flat or tapered seat ring centered inside the flow cavity. As the plug moves closer to the seat ring, the annular flow area decreases, throttling flow. The plug-to-seat distance sets the flow area and hence the valve coefficient Cv; combined with the pressure differential this determines the flow (Q = Cv·√(ΔP/SG)), giving predictable control loops.',
     applications: [
       'Boiler feed water flow control and bypass loops',
       'High-pressure steam turbine bypass and pressure reduction stations',
@@ -260,7 +260,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       seals: ['Flexible Graphite Packing', 'V-Ring PTFE', 'Kammprofile Gaskets']
     },
     standards: [
-      'BS 1873 (Steel Globe Stop and Check Valves for Petroleum, Petrochemical and Allied Industries)',
+      'BS 1873 (Steel Globe and Globe Stop and Check Valves for the Petroleum, Petrochemical and Allied Industries)',
       'ASME B16.34 (Valves - Flanged, Threaded, and Welding End)',
       'API 623 (Steel Globe Valves - Flanged and Butt-welding Ends, Bolted Bonnets)',
       'ISA 75.01 (Flow Equations for Sizing Control Valves)'
@@ -289,7 +289,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     name: 'Swing Check Valve',
     category: 'Check',
     subcategory: 'Check',
-    overview: 'A Swing Check Valve is an automatic, self-operating valve designed to prevent backflow in piping networks. It utilizes a pivoting flap (disc or clapper) suspended from a hinge pin near the top of the flow passage. In the forward flow direction, fluid velocity pushes the disc open, allowing flow. When flow stops or reverses, gravity and downstream pressure swing the disc back onto the seat, blocking the reverse flow immediately.',
+    overview: 'A Swing Check Valve is an automatic, self-operating valve designed to prevent backflow in piping networks. It utilizes a pivoting flap (disc or clapper) suspended from a hinge pin near the top of the flow passage. In the forward flow direction, fluid velocity pushes the disc open, allowing flow. When flow stops or reverses, gravity and downstream pressure swing the disc back onto the seat, blocking reverse flow — though the disc\'s long swing travel means closure is not instantaneous.',
     workingPrinciple: 'The valve operates strictly based on line pressure differential. Forward flow creates pressure that overcomes the weight of the disc, swinging it upward and out of the path. When forward flow slows down or pressure drops below the cracking pressure, the disc swings downward due to gravity. Any backward flow pushes the disc firmly against the body seat, utilizing the reverse fluid pressure to tighten the seal.',
     applications: [
       'Pump discharge pipelines (preventing back-spin on shutdown)',
@@ -320,7 +320,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     },
     standards: [
       'BS 1868 (Steel Check Valves for Petroleum, Petrochemical and Allied Industries)',
-      'API 594 (Thin-Plate, Wafer-Type, and Dual-Plate Check Valves)',
+      'API 6D (Specification for Pipeline and Piping Valves)',
       'API 598 (Valve Testing)',
       'ASME B16.34 (Valves - Flanged, Threaded, and Welding End)'
     ],
@@ -339,7 +339,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       metrics: [
         { parameter: 'Flow Capacity (Cv)', thisValveValue: 'High (Unobstructed swing path)', alternativeValveName: 'Lift Check Valve', alternativeValveValue: 'Medium (Tortuous piston path)' },
         { parameter: 'Water Hammer Risk', thisValveValue: 'High (Slow closure allows flow reverse build-up)', alternativeValveName: 'Nozzle Check Valve', alternativeValveValue: 'Extremely Low (Spring-assisted fast shutoff)' },
-        { parameter: 'Installation Orientation', thisValveValue: 'Horizontal or Vertical upward flow', alternativeValveName: 'Lift Check Valve', alternativeValveValue: 'Strictly Horizontal only' }
+        { parameter: 'Installation Orientation', thisValveValue: 'Horizontal or Vertical upward flow', alternativeValveName: 'Lift Check Valve', alternativeValveValue: 'Pattern-specific: horizontal-pattern body needs horizontal pipe (bonnet up); vertical-pattern/ball type needs vertical pipe with upward flow; spring-loaded in-line types work in any orientation' }
       ]
     }
   },
@@ -364,7 +364,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     limitations: [
       'Limited to relatively low pressure and temperature (diaphragm-bound)',
       'Diaphragm is a wear item requiring periodic replacement',
-      'Not bi-directional pressure rated like metal-seated valves'
+      'Weir obstructs the bore — markedly higher pressure drop than full-bore valves (Cv roughly an order of magnitude lower), and complete self-drainage in horizontal lines requires installing at the manufacturer\'s recommended weir inclination (typically 15-30 degrees)'
     ],
     components: [
       { name: 'Flexible Diaphragm', function: 'Acts as both the closure member and the primary seal, flexing onto the weir.', typicalMaterials: ['EPDM', 'PTFE-faced EPDM', 'Butyl Rubber'] },
@@ -381,7 +381,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       'BS EN 13397 (Metallic Diaphragm Valves)',
       'ASME BPE (Bioprocessing Equipment — sanitary service)',
       'API 598 (Valve Inspection and Testing)',
-      'ISO 16138 (Industrial Valves — Diaphragm Valves)'
+      'MSS SP-88 (Diaphragm Valves)'
     ],
     maintenance: [
       { interval: 'Per Cycle Count', action: 'Replace the diaphragm at the manufacturer-rated cycle life.', rationale: 'Diaphragm fatigue is the primary failure mode; proactive replacement prevents rupture.' },
@@ -457,7 +457,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       metrics: [
         { parameter: 'Shutoff in Dirty/Gas Service', thisValveValue: 'Excellent (full-contact sealing)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Good (soft seats, but seat wear)' },
         { parameter: 'Maintenance Demand', thisValveValue: 'High (periodic sealant injection)', alternativeValveName: 'Floating Ball Valve', alternativeValveValue: 'Low (maintenance-free seats)' },
-        { parameter: 'Operating Torque (large bore)', thisValveValue: 'Moderate–High', alternativeValveName: 'Triple Offset Butterfly Valve', alternativeValveValue: 'Low (balanced rotary)' }
+        { parameter: 'Operating Torque (large bore)', thisValveValue: 'Moderate–High', alternativeValveName: 'Triple Offset Butterfly Valve', alternativeValveValue: 'Low (offset cam geometry, no seat rubbing)' }
       ]
     }
   },
@@ -485,14 +485,14 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
       'Needle tip and seat are easily damaged by particulates'
     ],
     components: [
-      { name: 'Tapered Needle', function: 'Slender tapered plug that meters flow with high precision.', typicalMaterials: ['17-4PH Stainless', 'Hardened 316 SS'] },
+      { name: 'Tapered Needle', function: 'Slender tapered plug that meters flow with high precision.', typicalMaterials: ['17-4PH Stainless', 'Cold-Worked 316 SS'] },
       { name: 'Fine-Thread Stem', function: 'Converts many handle turns into small, precise needle travel.', typicalMaterials: ['SS316', 'Monel'] },
       { name: 'Seat Orifice', function: 'Small honed bore the needle closes against.', typicalMaterials: ['Hardened Stainless Steel', 'Stellite-faced'] },
       { name: 'Packing', function: 'Seals the stem penetration against high-pressure leakage.', typicalMaterials: ['PTFE', 'Grafoil'] }
     ],
     materials: {
       body: ['Forged 316 Stainless Steel', 'Monel 400', 'Hastelloy C-276', 'Brass (low pressure)'],
-      trim: ['17-4PH Needle', 'Stellite-faced Seat', 'Hardened 316 SS'],
+      trim: ['17-4PH Needle', 'Stellite-faced Seat', 'Cold-Worked 316 SS'],
       seals: ['PTFE Packing', 'Grafoil Packing', 'Viton O-Rings']
     },
     standards: [
@@ -541,10 +541,11 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     limitations: [
       'Set-pressure drifts over time and needs periodic re-certification',
       'Chattering and seat damage if oversized or with long inlet piping',
-      'Spring force is back-pressure sensitive (may need a balanced bellows)'
+      'Set pressure and capacity of a conventional valve are back-pressure sensitive (balanced bellows needed above ~10% built-up back pressure)'
     ],
     components: [
       { name: 'Helical Spring', function: 'Sets the relieving pressure by its calibrated preload.', typicalMaterials: ['Chrome-Vanadium Steel', 'Inconel X-750 (high temp)'] },
+      { name: 'Spindle', function: 'Transmits spring preload to the disc via the spring washers and guides disc lift.', typicalMaterials: ['ASTM A276 Type 410', '17-4PH Stainless'] },
       { name: 'Disc & Huddling Chamber', function: 'Closure that pops open at set pressure and reseats after blowdown.', typicalMaterials: ['Stellite-faced Stainless', 'Nimonic'] },
       { name: 'Nozzle / Seat', function: 'Inlet orifice and primary seating surface; throat for relief flow.', typicalMaterials: ['Stellite-faced SS', '316 Stainless'] },
       { name: 'Adjusting Screw', function: 'Sets spring compression to dial in the set pressure.', typicalMaterials: ['Alloy Steel', 'Stainless Steel'] }
@@ -585,7 +586,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     category: 'Air',
     subcategory: 'Air Release',
     overview: 'An Automatic Air Release Valve continuously vents the small pockets of air that come out of solution and accumulate at the high points of pressurised water pipelines. A buoyant float inside a chamber rides the water level; as air collects, the water level (and float) drops, opening a small orifice that exhausts the air to atmosphere. Once the air is expelled, water refills the chamber, the float rises, and the orifice reseals — all automatically under full line pressure.',
-    workingPrinciple: 'Under normal operation the chamber is full of water and the float is buoyed up, pressing a lever-actuated seal against the small discharge orifice. As dissolved air separates and gathers at the top, it displaces water downward; the float follows the falling level until the lever lifts the seal off the orifice. The pressurised air escapes through the small orifice; water then rises again, lifting the float to reseal before water can be lost. The small orifice is deliberately sized to release air without venting the much denser water.',
+    workingPrinciple: 'Under normal operation the chamber is full of water and the buoyant float is pressed up against the orifice seat — line pressure acting across the small orifice adds to the buoyancy, holding the seal tight. As dissolved air separates and gathers at the top, it displaces water downward; deprived of buoyant support, the float\'s weight pulls it off the seat against the pressure force across the orifice. The pressurised air escapes; water then rises again, lifting the float to reseal before water can be lost. The orifice is deliberately small so that the float\'s weight can crack it open against full line pressure (opening force must exceed P x orifice area) — which is why valves rated for higher pressures use smaller orifices.',
     applications: [
       'High points along water transmission mains',
       'Peaks of long inclined pipelines',
@@ -595,7 +596,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     advantages: [
       'Operates automatically and continuously under full line pressure',
       'Prevents air-binding that throttles flow and wastes pump energy',
-      'Compact, simple, self-cleaning float mechanism'
+      'Compact, simple mechanism with no external power or actuation needed'
     ],
     limitations: [
       'Small orifice gives limited venting capacity (air-release only)',
@@ -605,12 +606,12 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     components: [
       { name: 'Float Ball', function: 'Buoyant element that follows the liquid level to open/close the orifice.', typicalMaterials: ['Hollow Stainless Steel', 'Reinforced Polypropylene'] },
       { name: 'Discharge Orifice', function: 'Small calibrated port that vents accumulated air to atmosphere.', typicalMaterials: ['Stainless Steel', 'Brass'] },
-      { name: 'Orifice Seat', function: 'Soft seat the float lever presses against to seal the orifice.', typicalMaterials: ['EPDM', 'Buna-N', 'Viton'] },
-      { name: 'Lever Mechanism', function: 'Multiplies float buoyancy to seal against line pressure.', typicalMaterials: ['Stainless Steel', 'Acetal'] }
+      { name: 'Orifice Seat', function: 'Soft seat the float presses against to seal the orifice.', typicalMaterials: ['EPDM', 'Buna-N', 'Viton'] },
+      { name: 'Float Guide', function: 'Keeps the float concentric with the orifice so it lifts off and reseats squarely.', typicalMaterials: ['Stainless Steel', 'Acetal'] }
     ],
     materials: {
       body: ['Ductile Iron (epoxy coated)', 'Reinforced Nylon', 'ASTM A351 CF8M', 'Bronze'],
-      trim: ['Stainless Steel Float & Lever', 'Brass Orifice', 'Acetal Guides'],
+      trim: ['Stainless Steel Float', 'Brass Orifice', 'Acetal Guides'],
       seals: ['EPDM Orifice Seat', 'Buna-N O-Rings', 'Viton (chemical service)']
     },
     standards: [
@@ -626,7 +627,7 @@ export const VALVE_DETAILS: Record<string, ValveDetail> = {
     ],
     failureModes: [
       { mode: 'Orifice Clogging', cause: 'Debris, slime, or slurry lodges on the float/seat preventing sealing or venting.', prevention: 'Regular flushing; select larger orifice or wastewater-pattern valves for dirty fluids.' },
-      { mode: 'Continuous Water Spitting', cause: 'Worn or fouled seat lets water leak through the air orifice.', prevention: 'Replace the seat; clean the float and lever pivot.' },
+      { mode: 'Continuous Water Spitting', cause: 'Worn or fouled seat lets water leak through the air orifice.', prevention: 'Replace the seat; clean the float and guides.' },
       { mode: 'Float Waterlogging / Collapse', cause: 'Pressure surge collapses a hollow float or cracks it, flooding it.', prevention: 'Use surge-rated solid or reinforced floats; control transients.' }
     ],
     comparison: {

@@ -36,7 +36,7 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         name: 'Wedge Gate Valve',
         description: 'Linear movement wedge sealing against tapered body seats.',
         workingPrinciple: 'A threaded stem drives a metal wedge downwards perpendicular to flow direction, pressing into seats to block fluid.',
-        advantages: ['Zero flow restriction when open', 'Double sealing capability', 'High pressure rating bounds'],
+        advantages: ['Very low flow restriction when fully open (K ≈ 0.15)', 'Double sealing capability', 'High pressure rating bounds'],
         limitations: ['Extremely slow operation cycles', 'Erosion of seat if used for throttling', 'Susceptible to thermal lockups']
       },
       {
@@ -51,7 +51,7 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         id: 'butterfly-valve-triple-offset',
         name: 'Triple Offset Butterfly Valve',
         description: 'Rotary action disc with triple eccentric offset sealing for high performance.',
-        workingPrinciple: 'The stem rotates a thin circular disc 90 degrees. The triple offset shaft alignment ensures the disc makes contact with the seat ring only at final shutoff, eliminating seat friction.',
+        workingPrinciple: 'The stem rotates a thin circular disc 90 degrees. Two shaft offsets plus an inclined conical seat (the three offsets) ensure the disc makes contact with the seat ring only at final shutoff, eliminating seat friction.',
         advantages: ['Compact lightweight design', 'Bi-directional zero-leakage shutoff', 'Low torque requirements'],
         limitations: ['Disc sits in the flow stream, creating minor flow resistance', 'Susceptible to cavitation damage under high pressure drop throttling', 'Cavity near seat can collect solid debris']
       },
@@ -91,7 +91,7 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         name: 'Swing Check Valve',
         description: 'Pivoting flap hanging from a hinge pin near the port entry.',
         workingPrinciple: 'Forward flow pressure lifts the clapper off the seat. Gravity and reverse pressure swing the clapper back to shut off reverse flow.',
-        advantages: ['Automatic self-operation', 'Minimal pressure drop', 'Simple mechanical structure'],
+        advantages: ['Automatic self-operation', 'Low pressure drop for a check valve (K ≈ 2)', 'Simple mechanical structure'],
         limitations: ['Prone to water hammer slamming during sudden reversals', 'Cannot be installed pointing downward', 'Hinge pin wear in turbulent lines']
       }
     ]
@@ -113,7 +113,7 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
         id: 'globe-valve-standard',
         name: 'Standard Globe Valve',
         description: 'Z-body path configuration with linear regulating plug.',
-        workingPrinciple: 'The stem drives a contoured plug into a central seat ring. The fluid path shifts twice through the orifice, matching plug depth.',
+        workingPrinciple: 'The stem drives a contoured plug into a central seat ring. The fluid changes direction twice through the Z-shaped body, passing once through the central orifice; plug lift sets the open flow area.',
         advantages: ['Exceptional throttling precision', 'Short stem stroke path', 'Easy seat refurbishment'],
         limitations: ['High inherent pressure drop', 'Requires high actuator closing forces', 'Susceptible to cavitation damage']
       },
@@ -137,7 +137,7 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
       'High points in water transmission pipelines',
       'Long pipeline incline peaks',
       'Municipal wastewater transmission loops',
-      'Dumping manifolds protection'
+      'Pump discharge manifold protection'
     ],
     valves: [
       {
@@ -157,10 +157,10 @@ export const CATEGORIES_DATA: Record<string, CategoryDetails> = {
     overview: 'Safety valves automatically pop open at a set pressure limit to discharge fluid and prevent vessel explosions.',
     whyExists: 'Pressure vessels, boilers, and piping loops can experience pressure spikes that exceed their structural limits, risking catastrophic explosions.',
     applications: [
-      'Steam boilers headers',
-      'Chemical storage gas tanks protection',
-      'Piping loops thermal expansion relief',
-      'Refining safety venting stacks'
+      'Steam boiler headers',
+      'Chemical gas storage tank protection',
+      'Piping loop thermal-expansion relief',
+      'Refinery safety vent stacks'
     ],
     valves: [
       {

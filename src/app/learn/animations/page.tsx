@@ -17,10 +17,10 @@ import {
 
 // Reusable structural profile mapping valve-specific animation parameters across states
 interface AnimationStateDetails {
-  offset: number;       // Linear translation (Y-offset) or angular rotation (Degrees)
-  velocity: number;     // Fluid speed scale for animation (1 to 10)
-  turbulence: number;   // Turbulence perturbation amplitude (0 to 20)
-  pressureDrop: number; // Pressure drop indicator (PSI)
+  offset: number;       // rotary-turn: opening angle in degrees (0-90); linear types: closure retraction in SVG px
+  pipeVelocity: number; // Mean line (pipe) velocity in m/s — rises with opening; drives the flow animation speed
+  jetVelocity: number;  // Fluid velocity at the valve restriction in m/s (≈ sqrt(2·ΔP/ρ) while throttling) — falls as the valve opens
+  pressureDrop: number; // ΔP across the valve (PSI): flowing head loss when open; static line differential held at 0%
   flowColor: string;    // CSS color mapping flow velocity state
   description: string;  // Pedagogical details explaining internal operations
 }
@@ -46,11 +46,11 @@ const ANIMATION_PROFILES: Record<string, ValveAnimationProfile> = {
     mechanismType: 'linear-slide',
     componentLabel: 'Gate Wedge',
     states: {
-      0: { offset: 0, velocity: 0, turbulence: 0, pressureDrop: 0, flowColor: 'stroke-slate-700', description: 'Fully closed. The gate wedge blocks the flow path. Line pressure presses the gate against downstream seat for absolute isolation.' },
-      25: { offset: 12, velocity: 10, turbulence: 20, pressureDrop: 45, flowColor: 'stroke-rose-500', description: '25% open. Severe throttling. High velocity flow under the gate causes severe cavitation bubbles and seat erosion.' },
-      50: { offset: 25, velocity: 7, turbulence: 12, pressureDrop: 20, flowColor: 'stroke-amber-500', description: '50% open. Restricted flow. Significant vortices generate downstream of the wedge block.' },
-      75: { offset: 37, velocity: 5, turbulence: 5, pressureDrop: 8, flowColor: 'stroke-cyan-500', description: '75% open. Transitioning to stable flow. Flow path is clearing, and turbulence levels are dropping.' },
-      100: { offset: 50, velocity: 3, turbulence: 1, pressureDrop: 1, flowColor: 'stroke-cyan-400', description: '100% open. Stable laminar flow. Gate is completely out of flow stream. Near-zero pressure drop across the body orifice.' }
+      0: { offset: 0, pipeVelocity: 0, jetVelocity: 0, pressureDrop: 60, flowColor: 'stroke-slate-700', description: 'Fully closed. The gate wedge blocks the flow path and holds the full static line differential (~60 psi) at zero flow — that differential presses the wedge onto the downstream seat for absolute isolation.' },
+      25: { offset: 8, pipeVelocity: 0.8, jetVelocity: 24.9, pressureDrop: 45, flowColor: 'stroke-rose-500', description: '25% open. Severe throttling: the 45 psi drop drives a ~25 m/s jet under the gate. If downstream pressure is low, local pressure at the vena contracta can fall below vapor pressure, causing cavitation and seat erosion — gate valves should not be used to throttle.' },
+      50: { offset: 16, pipeVelocity: 2.3, jetVelocity: 16.6, pressureDrop: 20, flowColor: 'stroke-amber-500', description: '50% open. Restricted flow. Significant vortices shed downstream of the partially inserted wedge — the classic poor throttling behaviour of gate valves.' },
+      75: { offset: 24, pipeVelocity: 2.8, jetVelocity: 10.5, pressureDrop: 8, flowColor: 'stroke-cyan-500', description: '75% open. The wedge is nearly clear of the bore; line velocity approaches its maximum and turbulence from the gate is dropping.' },
+      100: { offset: 32, pipeVelocity: 3.0, jetVelocity: 3.2, pressureDrop: 0.1, flowColor: 'stroke-cyan-400', description: '100% open. Smooth, fully developed turbulent flow — water in industrial lines is turbulent at virtually any practical velocity (Re ~ 10^4–10^5; laminar flow in a 2-inch line would require under ~0.05 m/s) — with an undisturbed velocity profile. The gate is completely out of the flow stream: near-zero pressure drop across the body orifice (K ≈ 0.15–0.2).' }
     }
   },
   'ball': {
@@ -59,11 +59,11 @@ const ANIMATION_PROFILES: Record<string, ValveAnimationProfile> = {
     mechanismType: 'rotary-turn',
     componentLabel: 'Spherical Ball',
     states: {
-      0: { offset: 0, velocity: 0, turbulence: 0, pressureDrop: 0, flowColor: 'stroke-slate-700', description: 'Closed position. Ball bore is perpendicular to pipe axis. Upstream fluid pressure shifts the ball into downstream seat.' },
-      25: { offset: 22.5, velocity: 10, turbulence: 20, pressureDrop: 50, flowColor: 'stroke-rose-500', description: '25% open. High velocity fluid cuts through narrow crescent-shaped seat openings, risking seat tearing.' },
-      50: { offset: 45, velocity: 8, turbulence: 15, pressureDrop: 25, flowColor: 'stroke-amber-500', description: '50% open. Moderate flow. Flow is split into two vortices around the edge of the ball bore.' },
-      75: { offset: 67.5, velocity: 6, turbulence: 6, pressureDrop: 10, flowColor: 'stroke-cyan-500', description: '75% open. Flow stream aligns with ball port. Turbulence is restricted to boundary seat walls.' },
-      100: { offset: 90, velocity: 3, turbulence: 0.5, pressureDrop: 0.2, flowColor: 'stroke-cyan-400', description: '100% open. Full-bore straight-through flow. The ball port is aligned with the pipeline, acting as continuous pipe segment.' }
+      0: { offset: 0, pipeVelocity: 0, jetVelocity: 0, pressureDrop: 60, flowColor: 'stroke-slate-700', description: 'Closed position. Ball bore is perpendicular to pipe axis. Zero flow means zero dynamic pressure loss, but the ball now holds the full static line differential (~60 psi) — upstream pressure floats the ball into the downstream seat, and seating force equals ΔP times the seat area.' },
+      25: { offset: 22.5, pipeVelocity: 0.9, jetVelocity: 26.3, pressureDrop: 50, flowColor: 'stroke-rose-500', description: '25% open (22.5°). High-velocity jets (~26 m/s at a 50 psi drop) cut through the narrow crescent-shaped port openings, risking seat erosion and wire-drawing damage — with cavitation when downstream pressure is low.' },
+      50: { offset: 45, pipeVelocity: 2.2, jetVelocity: 18.6, pressureDrop: 25, flowColor: 'stroke-amber-500', description: '50% open (45°). Moderate flow. Strong shear layers shed from the port edges split the stream into vortices downstream of the bore.' },
+      75: { offset: 67.5, pipeVelocity: 2.7, jetVelocity: 11.8, pressureDrop: 10, flowColor: 'stroke-cyan-500', description: '75% open (67.5°). The port is nearly aligned with the pipe; turbulence is confined to the shear layers shed from the port edges.' },
+      100: { offset: 90, pipeVelocity: 3.0, jetVelocity: 3.1, pressureDrop: 0.05, flowColor: 'stroke-cyan-400', description: '100% open (90°). Full-bore straight-through flow. The ball port aligns with the pipeline and the valve behaves like a continuous pipe segment (K ≈ 0.05–0.1 for full-bore balls).' }
     }
   },
   'globe': {
@@ -72,11 +72,11 @@ const ANIMATION_PROFILES: Record<string, ValveAnimationProfile> = {
     mechanismType: 'linear-plug',
     componentLabel: 'Contoured Plug',
     states: {
-      0: { offset: 0, velocity: 0, turbulence: 0, pressureDrop: 0, flowColor: 'stroke-slate-700', description: 'Closed. Stem thrust drives the plug flat into the body seat ring, sealing against full system differential pressure.' },
-      25: { offset: 8, velocity: 7, turbulence: 14, pressureDrop: 55, flowColor: 'stroke-rose-500', description: '25% open. Controlled throttling. Symmetrical annular flow gap allows precise flow control, limiting cavitation.' },
-      50: { offset: 16, velocity: 6, turbulence: 10, pressureDrop: 35, flowColor: 'stroke-amber-500', description: '50% open. Medium flow. Fluid turns twice through Z-body orifice, generating constant pressure drop.' },
-      75: { offset: 24, velocity: 5, turbulence: 7, pressureDrop: 22, flowColor: 'stroke-amber-400', description: '75% open. High flow capacity. Flow path is open but flow direction shifts generate minor turbulence.' },
-      100: { offset: 32, velocity: 4, turbulence: 5, pressureDrop: 15, flowColor: 'stroke-cyan-500', description: '100% open. Maximum flow rate. Standard Z-path profile maintains moderate pressure restriction even at full stroke.' }
+      0: { offset: 0, pipeVelocity: 0, jetVelocity: 0, pressureDrop: 60, flowColor: 'stroke-slate-700', description: 'Closed. Stem thrust seats the contoured plug on the body seat ring; the valve holds the full static system differential (~60 psi) at zero flow.' },
+      25: { offset: 8, pipeVelocity: 0.9, jetVelocity: 27.6, pressureDrop: 55, flowColor: 'stroke-rose-500', description: '25% open. Controlled throttling. The symmetrical annular gap between plug and seat gives precise flow control, but the 55 psi drop concentrates at the vena contracta just downstream of the seat — the highest-risk condition for cavitation; severe service uses multi-stage anti-cavitation trim.' },
+      50: { offset: 16, pipeVelocity: 2.0, jetVelocity: 22.0, pressureDrop: 35, flowColor: 'stroke-amber-500', description: '50% open. Medium flow. Fluid turns twice through the Z-body orifice; the tortuous path keeps the resistance coefficient high, so the pressure drop scales with velocity squared (ΔP = K·ρ·v²/2) — it varies with flow rate, it is not constant.' },
+      75: { offset: 24, pipeVelocity: 2.4, jetVelocity: 17.4, pressureDrop: 22, flowColor: 'stroke-amber-400', description: '75% open. High flow capacity, but the two 90° turns of the Z-path keep the permanent (unrecovered) pressure loss higher than a gate or ball valve.' },
+      100: { offset: 32, pipeVelocity: 2.9, jetVelocity: 8.6, pressureDrop: 4.8, flowColor: 'stroke-cyan-500', description: '100% open. Maximum flow. Even at full stroke the Z-path keeps K ≈ 6–10, so the globe retains a measurable pressure drop (~5 psi at ~2.9 m/s line velocity) — the price of precise throttling control.' }
     }
   }
 };
@@ -174,21 +174,27 @@ export default function AnimationsPage() {
             <div className="w-full flex-1 flex items-center justify-center py-6">
               <svg className="w-full max-h-[260px] px-4" viewBox="0 0 300 150">
                 {/* Piping Background Boundary */}
-                <path d="M 10,60 L 120,60 L 120,30 L 180,30 L 180,60 L 290,60 L 290,90 L 180,90 L 180,120 L 120,120 L 120,90 L 10,90 Z" fill="none" stroke="#1e293b" strokeWidth="2.5" />
+                <path d="M 10,60 L 120,60 L 120,24 L 180,24 L 180,60 L 290,60 L 290,90 L 180,90 L 180,120 L 120,120 L 120,90 L 10,90 Z" fill="none" stroke="#1e293b" strokeWidth="2.5" />
                 
-                {/* Seat Rings Reference */}
-                <rect x="117" y="58" width="4" height="34" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
-                <rect x="179" y="58" width="4" height="34" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
+                {/* Seat Rings Reference (gate & ball; the globe draws its own Z-body seat) */}
+                {activeValve.mechanismType !== 'linear-plug' && (
+                  <g>
+                    <rect x="117" y="58" width="4" height="34" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
+                    <rect x="179" y="58" width="4" height="34" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
+                  </g>
+                )}
 
-                {/* Flow lines (Dynamic velocity and turbulence) */}
+                {/* Flow line (speed driven by mean pipe velocity; Z-path routing for the globe) */}
                 <path
-                  d="M 10,75 L 130,75 C 140,75 145,75 150,75 C 155,75 160,75 170,75 L 290,75"
+                  d={activeValve.mechanismType === 'linear-plug'
+                    ? 'M 10,75 L 118,75 Q 126,84 134,84 L 140,84 Q 150,84 150,70 Q 150,60 160,66 Q 168,72 176,75 L 290,75'
+                    : 'M 10,75 L 130,75 C 140,75 145,75 150,75 C 155,75 160,75 170,75 L 290,75'}
                   fill="none"
                   className={currentState.flowColor}
                   strokeWidth={openingState === 0 ? 0.5 : Math.max(1, 5 - currentState.pressureDrop / 12)}
                   strokeDasharray="8 4"
                   style={{
-                    animation: openingState === 0 ? 'none' : `flowAnim ${Math.max(0.1, 1.5 - currentState.velocity / 6.5)}s linear infinite`
+                    animation: openingState === 0 ? 'none' : `flowAnim ${(2.4 / currentState.pipeVelocity).toFixed(2)}s linear infinite`
                   }}
                 />
 
@@ -200,11 +206,11 @@ export default function AnimationsPage() {
                       x="147"
                       y={10 - currentState.offset}
                       width="6"
-                      height="65"
+                      height="48"
                       fill="#475569"
                     />
                     <path
-                      d={`M 130,${75 - currentState.offset} L 170,${75 - currentState.offset} L 165,${95 - currentState.offset} L 135,${95 - currentState.offset} Z`}
+                      d={`M 130,${58 - currentState.offset} L 170,${58 - currentState.offset} L 165,${92 - currentState.offset} L 135,${92 - currentState.offset} Z`}
                       fill="#94a3b8"
                       stroke="#475569"
                       strokeWidth="1"
@@ -215,7 +221,7 @@ export default function AnimationsPage() {
                 {activeValve.mechanismType === 'rotary-turn' && (
                   <g transform="translate(150, 75)">
                     {/* Spherical ball rotates on angular offset */}
-                    <g transform={`rotate(${currentState.offset})`}>
+                    <g transform={`rotate(${currentState.offset - 90})`}>
                       <circle cx="0" cy="0" r="18" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
                       {/* Internal Bore Cutout */}
                       <rect x="-18" y="-6" width="36" height="12" fill="#060913" />
@@ -227,6 +233,12 @@ export default function AnimationsPage() {
 
                 {activeValve.mechanismType === 'linear-plug' && (
                   <g>
+                    {/* Z-body partition: inlet baffle, seat deck, orifice lips, downstream drop wall */}
+                    <rect x="124" y="58" width="4" height="19" fill="#1e293b" />
+                    <rect x="124" y="73" width="17" height="4" fill="#1e293b" />
+                    <rect x="139" y="74" width="3" height="4" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
+                    <rect x="158" y="74" width="3" height="4" fill="#f59e0b" stroke="#d97706" strokeWidth="0.5" />
+                    <rect x="158" y="75" width="4" height="16" fill="#1e293b" />
                     {/* Globe contoured plug lifts linearly */}
                     <rect
                       x="147"
@@ -247,15 +259,21 @@ export default function AnimationsPage() {
             </div>
 
             {/* Micro Metrics Panel */}
-            <div className="grid grid-cols-3 gap-3 w-full mt-4 border-t border-white/5 pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full mt-4 border-t border-white/5 pt-4">
               <div className="bg-slate-950/30 border border-white/5 rounded-xl p-3 text-center">
-                <div className="text-[10px] text-muted-foreground font-medium mb-1">Flow Velocity</div>
+                <div className="text-[10px] text-muted-foreground font-medium mb-1">Line Velocity</div>
                 <div className="text-sm font-bold font-mono text-primary">
-                  {openingState === 0 ? '0' : currentState.velocity} m/s
+                  {currentState.pipeVelocity} m/s
                 </div>
               </div>
               <div className="bg-slate-950/30 border border-white/5 rounded-xl p-3 text-center">
-                <div className="text-[10px] text-muted-foreground font-medium mb-1">Pressure Loss</div>
+                <div className="text-[10px] text-muted-foreground font-medium mb-1">Jet Velocity (at restriction)</div>
+                <div className="text-sm font-bold font-mono text-primary">
+                  {openingState === 0 ? '—' : `${currentState.jetVelocity} m/s`}
+                </div>
+              </div>
+              <div className="bg-slate-950/30 border border-white/5 rounded-xl p-3 text-center">
+                <div className="text-[10px] text-muted-foreground font-medium mb-1">{openingState === 0 ? 'Static ΔP (no flow)' : 'Pressure Loss'}</div>
                 <div className="text-sm font-bold font-mono text-primary">
                   {currentState.pressureDrop} ΔPSI
                 </div>

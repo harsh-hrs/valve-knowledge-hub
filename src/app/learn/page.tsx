@@ -152,7 +152,7 @@ export default function LearnPage() {
           <h1 className="text-3xl font-extrabold tracking-tight">Valve Academy</h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Run deep learning modules, complete conceptual quizzes, and build certified pipeline skills.
+          Work through in-depth learning modules, complete conceptual quizzes, and build practical valve engineering skills.
         </p>
       </div>
 
@@ -350,7 +350,7 @@ export default function LearnPage() {
                   </div>
                   <h3 className="font-bold text-lg">Checkpoint Cleared!</h3>
                   <p className="text-muted-foreground text-xs max-w-xs leading-relaxed">
-                    You have studied the mechanics and recorded a score of **{Math.round((currentSessionScore / selectedLesson.quiz.length) * 100)}%**. Progress synced.
+                    You have studied the mechanics and recorded a score of <strong className="text-foreground">{Math.round((currentSessionScore / selectedLesson.quiz.length) * 100)}%</strong>. Progress synced.
                   </p>
                   <button
                     onClick={() => setSelectedLesson(null)}

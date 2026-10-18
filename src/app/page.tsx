@@ -28,7 +28,7 @@ const VALVES = [
     name: 'Wedge Gate Valve',
     category: 'Linear',
     subcategory: 'Gate',
-    description: 'Sliding-disc valve designed for strict on-off isolation with minimal flow restriction.',
+    description: 'Sliding-wedge valve designed for strict on-off isolation with minimal flow restriction.',
     advantages: ['Near-zero pressure drop when fully open', 'Bi-directional operation', 'High-pressure sealing'],
     typicalApplications: ['Oil and gas trunk pipelines', 'Municipal water mains', 'Steam systems'],
     color: 'from-blue-600 to-cyan-500',
@@ -40,7 +40,7 @@ const VALVES = [
     category: 'Linear',
     subcategory: 'Globe',
     description: 'Spherical cavity valve with tortuous Z-shaped flow path optimized for throttling control.',
-    advantages: ['Precise flow regulation', 'Shorter stem travel than gate valves', 'In-line seats repair'],
+    advantages: ['Precise flow regulation', 'Shorter stem travel than gate valves', 'In-line seat repair'],
     typicalApplications: ['Cooling loops bypass', 'Boiler feed systems', 'Chemical dosing lines'],
     color: 'from-purple-600 to-indigo-500',
     spec: 'High Delta-P Throttling'
@@ -72,8 +72,8 @@ const VALVES = [
     name: 'Swing Check Valve',
     category: 'Self-Actuated',
     subcategory: 'Check',
-    description: 'Automatic backflow prevention valve operating purely on system fluid kinetics.',
-    advantages: ['No external actuator needed', 'Low fluid flow resistance', 'Gravity-assisted seating'],
+    description: 'Automatic backflow prevention valve driven purely by line pressure differential.',
+    advantages: ['No external actuator needed', 'Low resistance among check valves', 'Gravity-assisted seating'],
     typicalApplications: ['Pump discharge manifolds', 'Sewage mains backflow prevention', 'Cooling loops safety'],
     color: 'from-rose-600 to-pink-500',
     spec: 'Backflow Prevention'
@@ -128,7 +128,7 @@ const VALVES = [
     category: 'Self-Actuated',
     subcategory: 'Air Release',
     description: 'Float-operated valve that continuously vents trapped air from pipeline high points.',
-    advantages: ['Automatic under line pressure', 'Prevents air-binding', 'Self-cleaning float'],
+    advantages: ['Automatic under line pressure', 'Prevents air-binding', 'No external power needed'],
     typicalApplications: ['Water transmission high points', 'Pump station headers', 'Irrigation mains'],
     color: 'from-teal-600 to-cyan-500',
     spec: 'Air Venting'
@@ -144,33 +144,65 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Linear' | 'Rotary' | 'Self-Actuated'>('All');
 
-  // Math equations simulating fluid flow through an orifice
+  // Liquid sizing model: 2-in Sch 40 pipe, water at 20 C, 2-in valve (Cv 50, parabolic),
+  // discharging to atmosphere through downstream pipe (equivalent Cv 30, K ~ 18)
   const flowSimulation = useMemo(() => {
-    const openingFraction = opening / 100;
-    
-    // Flow coefficient approximation mapping opening size
-    const Cv = Math.round(50 * Math.pow(openingFraction, 2) * 10) / 10;
-    
-    // Flow rate: Q = Cv * sqrt(dP)
-    const deltaP = Math.max(1, Math.round(pressure * (1 - openingFraction) * 10) / 10);
-    const flowRate = Math.round(Cv * Math.sqrt(deltaP) * 10) / 10;
-    
-    // Velocity approximation: V = Q / Area
-    const velocity = Math.round((flowRate * 0.4) * 10) / 10;
+    const D = 0.0525;                 // pipe ID, m (2.067 in)
+    const A = (Math.PI / 4) * D * D;  // 2.165e-3 m^2
+    const GPM_TO_M3S = 6.309e-5;      // 1 US gpm in m^3/s
+    const SG = 1.0;                   // specific gravity, water
+    const NU = 1.0e-6;                // kinematic viscosity, m^2/s (20 C)
+    const CV_MAX = 50;                // full-open valve Cv
+    const CV_PIPE = 30;               // downstream pipe as equivalent Cv
+    const P_ATM = 14.7;               // psia
+    const PV = 0.34;                  // water vapor pressure at 20 C, psia
+    const FL = 0.9;                   // liquid pressure recovery factor
+    const FF = 0.94;                  // critical pressure ratio factor, water at 20 C
 
-    // Diagnose state bounds
-    let flowState: 'Laminar' | 'Turbulent' | 'Cavitation' = 'Laminar';
-    let statusColor = 'text-cyan-400';
-    let statusBg = 'bg-cyan-500/10 border-cyan-500/20';
+    const x = opening / 100;
+    // Parabolic inherent characteristic: Cv = Cv_max * x^2
+    const Cv = Math.round(CV_MAX * x * x * 10) / 10;
+    // Series resistance: 1/Cv_sys^2 = 1/Cv^2 + 1/CV_PIPE^2
+    const CvSys = Cv > 0 ? (Cv * CV_PIPE) / Math.sqrt(Cv * Cv + CV_PIPE * CV_PIPE) : 0;
+    // Sizing equation, P2 = 0 psig: Q[gpm] = Cv_sys * sqrt(P1[psi]/SG)
+    let flowRate = Math.round(CvSys * Math.sqrt(pressure / SG) * 10) / 10;
+    // Valve share of the drop: dP = SG*(Q/Cv)^2; full P1 at shutoff
+    const deltaP = Cv > 0 ? Math.min(pressure, Math.round(SG * Math.pow(flowRate / Cv, 2) * 10) / 10) : pressure;
+    // Choked/cavitating when dP > FL^2*(P1_abs - FF*Pv) (IEC 60534-2-1)
+    const P1abs = pressure + P_ATM;
+    const cavitating = flowRate > 0 && deltaP > FL * FL * (P1abs - PV);
+    if (cavitating) {
+      const qChoked = Cv * FL * Math.sqrt((P1abs - FF * PV) / SG);
+      flowRate = Math.min(flowRate, Math.round(qChoked * 10) / 10);
+    }
+    // Continuity: v = Q/A
+    const velocity = Math.round(((flowRate * GPM_TO_M3S) / A) * 10) / 10;
+    // Regime from Reynolds number: Re = v*D/nu
+    const Re = (velocity * D) / NU;
 
-    if (velocity > 12 && opening < 30) {
+    let flowState: 'No Flow' | 'Laminar' | 'Transitional' | 'Turbulent' | 'Cavitation';
+    let statusColor: string;
+    let statusBg: string;
+    if (cavitating) {
       flowState = 'Cavitation';
       statusColor = 'text-rose-400';
       statusBg = 'bg-rose-500/10 border-rose-500/20';
-    } else if (velocity > 4 || openingFraction < 0.7) {
+    } else if (flowRate === 0) {
+      flowState = 'No Flow';
+      statusColor = 'text-slate-400';
+      statusBg = 'bg-slate-500/10 border-slate-500/20';
+    } else if (Re > 4000) {
       flowState = 'Turbulent';
       statusColor = 'text-amber-400';
       statusBg = 'bg-amber-500/10 border-amber-500/20';
+    } else if (Re > 2300) {
+      flowState = 'Transitional';
+      statusColor = 'text-amber-400';
+      statusBg = 'bg-amber-500/10 border-amber-500/20';
+    } else {
+      flowState = 'Laminar';
+      statusColor = 'text-cyan-400';
+      statusBg = 'bg-cyan-500/10 border-cyan-500/20';
     }
 
     return { Cv, deltaP, flowRate, velocity, flowState, statusColor, statusBg };
@@ -238,7 +270,7 @@ export default function Home() {
               <span className="font-semibold text-sm">Interactive Fluid Solver</span>
             </div>
             <div className={`px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase ${flowSimulation.statusBg} ${flowSimulation.statusColor}`}>
-              {flowSimulation.flowState} Flow
+              {flowSimulation.flowState === 'No Flow' ? 'No Flow' : `${flowSimulation.flowState} Flow`}
             </div>
           </div>
 
@@ -259,12 +291,12 @@ export default function Home() {
                     ? '#f59e0b'
                     : '#06b6d4'
                 }
-                strokeWidth={Math.max(2, flowSimulation.flowRate / 3)}
+                strokeWidth={Math.max(2, flowSimulation.flowRate / 25)}
                 strokeDasharray="10 5"
                 strokeDashoffset={-(flowSimulation.velocity * 3)}
                 className="transition-all duration-100"
                 style={{
-                  animation: `flowAnim ${Math.max(0.1, 2 - flowSimulation.velocity / 5)}s linear infinite`
+                  animation: `flowAnim ${Math.max(0.15, 2 - flowSimulation.velocity / 3)}s linear infinite`
                 }}
               />
               
@@ -326,13 +358,17 @@ export default function Home() {
             </div>
             <div className="bg-slate-950/30 border border-white/5 rounded-xl p-3 text-center">
               <div className="text-[10px] text-muted-foreground font-medium mb-1">Pressure Drop</div>
-              <div className="text-sm font-bold font-mono text-primary">{flowSimulation.deltaP} ΔPSI</div>
+              <div className="text-sm font-bold font-mono text-primary">{flowSimulation.deltaP} PSI</div>
             </div>
             <div className="bg-slate-950/30 border border-white/5 rounded-xl p-3 text-center">
               <div className="text-[10px] text-muted-foreground font-medium mb-1">Fluid Velocity</div>
               <div className="text-sm font-bold font-mono text-primary">{flowSimulation.velocity} m/s</div>
             </div>
           </div>
+
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Model: water at 20 °C in a 2-inch Sch 40 line, 2-inch valve (Cv 50), discharging to atmosphere.
+          </p>
 
           {/* Physics Warnings */}
           <AnimatePresence mode="wait">
@@ -344,7 +380,7 @@ export default function Home() {
                 className="flex gap-2.5 items-center p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 text-xs"
               >
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span><strong>Cavitation Warning:</strong> High delta pressure and localized throttling speeds risk vapor bubble collapse, damaging seats.</span>
+                <span><strong>Cavitation Warning:</strong> Static pressure at the vena contracta has fallen below the water&apos;s vapor pressure — vapor bubbles form and collapse just downstream as pressure recovers, eroding the trim and body.</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -387,7 +423,7 @@ export default function Home() {
             { id: 'isolation', name: 'Isolation Valves', desc: 'On-Off Shutoff', color: 'border-blue-500/20 hover:border-blue-500/50 bg-blue-500/5' },
             { id: 'check', name: 'Check Valves', desc: 'Backflow Prevention', color: 'border-rose-500/20 hover:border-rose-500/50 bg-rose-500/5' },
             { id: 'control', name: 'Control Valves', desc: 'Flow Regulation', color: 'border-purple-500/20 hover:border-purple-500/50 bg-purple-500/5' },
-            { id: 'air', name: 'Air Valves', desc: 'Vacuum Protection', color: 'border-cyan-500/20 hover:border-cyan-500/50 bg-cyan-500/5' },
+            { id: 'air', name: 'Air Valves', desc: 'Air Release & Venting', color: 'border-cyan-500/20 hover:border-cyan-500/50 bg-cyan-500/5' },
             { id: 'safety', name: 'Safety & Relief', desc: 'Vessels Protection', color: 'border-amber-500/20 hover:border-amber-500/50 bg-amber-500/5' }
           ].map((cat) => (
             <Link

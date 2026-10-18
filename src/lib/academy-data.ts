@@ -28,7 +28,7 @@ export const ACADEMY_CURRICULUM: AcademyModule[] = [
   {
     id: 'basics',
     title: 'Module 1: Valve Mechanics & Classifications',
-    description: 'Master standard terminology, linear vs rotary actions, and structural pressure rating bodies.',
+    description: 'Master standard terminology, linear vs rotary actions, and pressure-boundary components and ratings.',
     lessons: [
       {
         id: 'intro-mechanics',
@@ -59,7 +59,7 @@ export const ACADEMY_CURRICULUM: AcademyModule[] = [
         id: 'linear-rotary',
         title: 'Linear vs Rotary Motion Assemblies',
         estimatedTime: '10 min',
-        content: 'Valves are classified by the movement of their closure member. Linear valves (Gate, Globe, Diaphragm, Pinch) utilize a disc, plug, or wedge that moves in a straight line relative to the flow orifice. They often require multiple turns of a threaded stem to cycle from fully open to closed. This gradual action prevents water hammer but requires more space. Rotary valves (Ball, Butterfly, Plug) utilize a closure member that rotates 90 degrees (quarter-turn) around an internal axis. This allows fast actuation, smaller profiles, and less stem wear, but can induce flow shock if shut too rapidly.',
+        content: 'Valves are classified by the movement of their closure member. Linear valves (Gate, Globe, Diaphragm, Pinch) utilize a disc, plug, or wedge that moves in a straight line relative to the flow orifice. They often require multiple turns of a threaded stem to cycle from fully open to closed. This gradual action greatly reduces water hammer (surge pressures approach the Joukowsky limit dP = rho*a*dv only for rapid closure) but requires more space. Rotary valves (Ball, Butterfly, Plug) utilize a closure member that rotates 90 degrees (quarter-turn) around an internal axis. This allows fast actuation, smaller profiles, and less stem wear, but can induce flow shock if shut too rapidly.',
         quiz: [
           {
             question: 'What is a typical advantage of quarter-turn rotary valves over multi-turn linear valves?',
@@ -116,7 +116,7 @@ export const ACADEMY_CURRICULUM: AcademyModule[] = [
         id: 'cavitation-flashing',
         title: 'Analyzing Cavitation & Flashing',
         estimatedTime: '15 min',
-        content: 'Cavitation occurs when fluid pressure drops below vapor pressure as it throttles through the valve orifice (at the vena contracta, the narrowest point of the flow path), forming vapor bubbles. When the fluid exits the orifice, pressure recovers above the vapor pressure, causing these bubbles to collapse violently. This generates localized shockwaves (micro-jets up to 100,000 PSI) that score metal seats. Flashing differs in that the downstream pressure remains below the vapor pressure, causing the fluid to exit the valve as a mixture of liquid and vapor, causing smooth sandblasting-like erosion.',
+        content: 'Cavitation occurs when fluid pressure drops below vapor pressure as it throttles through the valve orifice (at the vena contracta, the narrowest point of the flow path), forming vapor bubbles. When the fluid exits the orifice, pressure recovers above the vapor pressure, causing these bubbles to collapse violently. This generates localized shockwaves (micro-jets up to 100,000 PSI) that score metal seats. Flashing differs in that the downstream pressure remains below the vapor pressure, causing the fluid to exit the valve as a mixture of liquid and vapor, causing smooth, polished erosion from high-velocity liquid droplets entrained in the vapor (in contrast to the rough, cinder-like pitting of cavitation).',
         quiz: [
           {
             question: 'What physical event initiates localized cavitation wear on valve seats?',
@@ -220,7 +220,7 @@ export const ACADEMY_CURRICULUM: AcademyModule[] = [
         id: 'troubleshooting-failures',
         title: 'Common Failure Modes & Troubleshooting',
         estimatedTime: '14 min',
-        content: 'Industrial valves operate under demanding conditions, leading to several classic failure modes: 1) Thermal Binding: occurrs in solid wedge gate valves. The valve is closed tightly while hot, and as it cools, the body contracts, wedging the disc tightly between seats. 2) Stem Packing Leakage: caused by friction wear on graphite or PTFE rings, allowing fugitive emissions. 3) Stem Galling: wear between sliding metal threads on stems without proper lubrication. Live-loaded packing glands (incorporating Belleville disc springs) are utilized to apply a continuous sealing force, compensating for wear and thermal cycles.',
+        content: 'Industrial valves operate under demanding conditions, leading to several classic failure modes: 1) Thermal Binding: occurs in solid wedge gate valves. The valve is closed tightly while hot, and as it cools, the body contracts, wedging the disc tightly between seats. 2) Stem Packing Leakage: caused by friction wear on graphite or PTFE rings, allowing fugitive emissions. 3) Stem Galling: wear between sliding metal threads on stems without proper lubrication. Live-loaded packing glands (incorporating Belleville disc springs) are utilized to apply a continuous sealing force, compensating for wear and thermal cycles.',
         quiz: [
           {
             question: 'What is thermal binding in wedge gate valves?',
@@ -250,13 +250,13 @@ export const ACADEMY_CURRICULUM: AcademyModule[] = [
         id: 'leakage-standards',
         title: 'Testing Standards & Seat Leakage Classifications',
         estimatedTime: '12 min',
-        content: 'Valves must meet specific design and testing standards. ANSI/FCI 70-2 defines seat leakage classifications for control valves. Class I has no testing requirement, Class IV is the industrial standard (metal-to-metal seats, permitting a maximum leakage of 0.01% of full open capacity), and Class VI provides the tightest shutoff (bubble-tight, utilizing soft elastomer seats like PTFE or Viton, tested with air or nitrogen). Design limits and wall thicknesses are governed by ASME B16.34, while API 598 defines testing procedures and leakage rates for isolation valves.',
+        content: 'Valves must meet specific design and testing standards. ANSI/FCI 70-2 defines seat leakage classifications for control valves. Class I has no testing requirement, Class IV is the industrial standard (metal-to-metal seats, permitting a maximum leakage of 0.01% of full open capacity), and Class VI provides the tightest shutoff (bubble-tight, utilizing resilient soft seats such as PTFE (a fluoropolymer) or elastomers such as FKM/Viton, tested with air or nitrogen). Design limits and wall thicknesses are governed by ASME B16.34, while API 598 defines testing procedures and leakage rates for isolation valves.',
         quiz: [
           {
             question: 'Which ANSI/FCI 70-2 leakage class specifies a "bubble-tight" shutoff utilizing soft seats?',
             options: ['Class II', 'Class IV', 'Class V', 'Class VI'],
             correctIndex: 3,
-            explanation: 'Class VI specifies the tightest standard leakage class (often called bubble-tight or zero-leakage) and is typically achieved using resilient soft seats.'
+            explanation: 'Class VI specifies the tightest standard leakage class (often called bubble-tight; it allows only a small specified bubble-per-minute rate that scales with port diameter) and is typically achieved using resilient soft seats.'
           },
           {
             question: 'What is the primary scope of the ASME B16.34 standard?',
@@ -308,7 +308,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     term: 'Choked Flow',
-    definition: 'A fluid dynamics condition where the flow rate through a valve cannot increase further, even if downstream pressure drops, because fluid velocity has reached sonic speed.',
+    definition: 'A condition where flow rate through a valve reaches a maximum and cannot increase even if downstream pressure drops further. In gases, choking occurs when velocity at the vena contracta reaches the local speed of sound; in liquids, it occurs when vena contracta pressure falls to the vapor pressure and vapor formation (cavitation or flashing) limits flow.',
     context: 'Gas regulator valves must be sized carefully to avoid choked flow noise and piping vibrations.'
   },
   {

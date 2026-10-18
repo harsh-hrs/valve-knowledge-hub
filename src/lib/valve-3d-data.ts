@@ -160,7 +160,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
         name: 'Contoured Plug',
         category: 'Linear Regulating Member',
         description: 'A profiled plug that varies the annular flow area for fine control.',
-        function: 'Moves linearly into the seat ring; plug-to-seat distance sets the flow rate.',
+        function: 'Moves linearly into the seat ring; plug-to-seat distance sets the open flow area (the valve Cv).',
         materials: ['F316 + Stellite Overlay', 'CF8M'],
       },
     },
@@ -299,7 +299,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
     motion: 'Linear compressor · flexible seal',
     fluid: 'water',
     flowPath: 'inline',
-    actuationLabel: 'Compressor',
+    actuationLabel: 'Compressor Lift',
     groups: [
       { label: 'Pressure Boundary', components: ['body', 'bonnet'] },
       { label: 'Actuation', components: ['handwheel', 'stem', 'compressor'] },
@@ -310,7 +310,12 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
         description: 'A lined body with a raised weir; the wetted path is fully isolated from the working parts.',
         materials: ['Cast Iron + Rubber Lining', 'PFA-Lined Steel', 'CF8M'],
       }),
-      bonnet: BONNET,
+      bonnet: {
+        ...BONNET,
+        description:
+          'A dry, non-wetted cover that clamps the diaphragm rim against the body flange — there is no stuffing box or stem packing; the diaphragm itself seals to atmosphere.',
+        function: 'Clamps the diaphragm periphery, carries the pressure load transmitted through the membrane, and guides the stem and compressor.',
+      },
       handwheel: HANDWHEEL,
       stem: { ...STEM, description: 'A non-wetted stem that drives the compressor down onto the diaphragm.' },
       compressor: {
@@ -349,18 +354,27 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
     flowPath: 'inline',
     actuationLabel: 'Rotation',
     groups: [
-      { label: 'Pressure Boundary', components: ['body', 'cap'] },
-      { label: 'Actuation', components: ['lever', 'stem'] },
+      { label: 'Pressure Boundary', components: ['body', 'cap', 'gland'] },
+      { label: 'Actuation', components: ['lever', 'stem', 'packing'] },
       { label: 'Internals', components: ['plug', 'seat'] },
     ],
     components: {
       body: BODY({ description: 'A cylindrical/tapered body bore that the plug seats into across its full length.' }),
+      gland: {
+        id: 'gland',
+        name: 'Gland / Cover',
+        category: 'Pressure Cover',
+        description: 'Seals the stem exit at the top of the body; on lubricated designs the sealant fitting mounts above it.',
+        function: 'Compresses the stem packing and closes the top pressure boundary around the rotating stem.',
+        materials: ['ASTM A216 WCB', 'Forged A105'],
+      },
+      packing: PACKING,
       cap: {
         id: 'cap',
         name: 'Bottom Cap',
         category: 'Pressure Cover',
-        description: 'Retains the plug and provides the sealant injection / adjustment point.',
-        function: 'Sets plug-to-body clearance and closes the pressure boundary.',
+        description: 'Retains the plug and carries the adjusting screw that sets plug seating depth.',
+        function: 'Sets plug-to-body clearance and closes the bottom pressure boundary; sealant is injected through the fitting at the top of the stem.',
         materials: ['ASTM A216 WCB', 'Forged A105'],
       },
       lever: {
@@ -375,7 +389,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
       seat: {
         ...SEAT,
         description: 'The full tapered contact between plug and body, kept sealed by injected lubricant.',
-        materials: ['Lubricant Film', 'PTFE Sleeve', 'Nitrided Steel'],
+        materials: ['Injected Sealant Film', 'Nitrided Steel', 'ENP Carbon Steel'],
       },
       plug: {
         id: 'plug',
@@ -406,18 +420,23 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
         description: 'A compact forged body, often angle-pattern, sized for instrument and sample lines.',
         materials: ['Forged 316 SS', 'Monel', 'Hastelloy'],
       }),
-      bonnet: BONNET,
+      bonnet: {
+        ...BONNET,
+        description:
+          'A screwed (union) bonnet machined from the same forged bar stock as the body; houses the fine stem thread and packing.',
+        materials: ['Forged/Bar 316 SS (A479)', 'Monel 400', 'A182 F316'],
+      },
       handwheel: { ...HANDWHEEL, name: 'Knurled Handle', description: 'A fine knurled knob for sensitive adjustment.' },
       stem: { ...STEM, description: 'A fine-pitch threaded stem giving many turns over a tiny travel.' },
       packing: PACKING,
-      seat: { ...SEAT, description: 'A small honed orifice that the needle point closes against.' },
+      seat: { ...SEAT, name: 'Seat Orifice', description: 'A small honed orifice that the needle point closes against.' },
       needle: {
         id: 'needle',
         name: 'Tapered Needle',
         category: 'Metering Closure',
         description: 'A long, slender, sharply tapered plug that meters flow with high precision.',
         function: 'Each turn advances the needle a tiny amount, finely varying a small orifice area.',
-        materials: ['17-4PH Stainless', 'Hardened 316'],
+        materials: ['17-4PH Stainless', 'Cold-Worked 316 SS'],
       },
     },
   },
@@ -433,7 +452,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
     groups: [
       { label: 'Pressure Boundary', components: ['body', 'bonnet'] },
       { label: 'Setpoint', components: ['spring', 'adjuster'] },
-      { label: 'Internals', components: ['disc', 'nozzle'] },
+      { label: 'Internals', components: ['disc', 'nozzle', 'spindle'] },
     ],
     components: {
       body: BODY({ description: 'An angle body: inlet from the protected vessel below, discharge to the side.' }),
@@ -470,6 +489,14 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
         function: 'A huddling chamber captures extra area at lift, giving the rapid "pop" action and reseating.',
         materials: ['Stellite-faced SS', 'Nimonic'],
       },
+      spindle: {
+        id: 'spindle',
+        name: 'Spindle',
+        category: 'Force Transmission',
+        description: 'Rod that transmits spring force onto the disc and guides its axial lift.',
+        function: 'Carries the spring load from the bottom spring washer to the disc and keeps the disc concentric with the nozzle; the top washer reacts against the adjusting screw.',
+        materials: ['410 Stainless', '17-4PH'],
+      },
     },
   },
 
@@ -480,7 +507,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
     motion: 'Float-operated · vents trapped air',
     fluid: 'air',
     flowPath: 'vertical',
-    actuationLabel: 'Float Level',
+    actuationLabel: 'Trapped Air',
     groups: [
       { label: 'Pressure Boundary', components: ['body', 'cap'] },
       { label: 'Internals', components: ['float', 'orifice', 'seat'] },
@@ -491,7 +518,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
         id: 'cap',
         name: 'Cover & Orifice Housing',
         category: 'Pressure Cover',
-        description: 'Tops the chamber and carries the small discharge orifice and lever mechanism.',
+        description: 'Tops the chamber and carries the small discharge orifice.',
         function: 'Closes the chamber and locates the orifice the float seals against.',
         materials: ['Ductile Iron', 'Reinforced Nylon', 'CF8M'],
       },
@@ -514,7 +541,7 @@ export const VALVE_3D: Record<string, Valve3DConfig> = {
       seat: {
         ...SEAT,
         name: 'Orifice Seat',
-        description: 'The soft seat the float lever presses against to close the orifice.',
+        description: 'The soft seat the float presses against to close the orifice.',
         materials: ['EPDM', 'Buna-N', 'Viton'],
       },
     },
