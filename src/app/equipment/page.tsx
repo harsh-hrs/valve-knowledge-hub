@@ -2,11 +2,16 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EQUIPMENT_LIST } from '@/lib/equipment-data';
+import { pageOpenGraph } from '@/lib/site';
 import { Factory, Rotate3d, ChevronRight, Sparkles } from 'lucide-react';
 
+const TITLE = 'Equipment Lab - ValveHub';
+const DESCRIPTION = 'Interactive 3D models of the plant equipment that valves work with: pumps, intakes and more.';
+
 export const metadata: Metadata = {
-  title: 'Equipment Lab - ValveHub',
-  description: 'Interactive 3D models of the plant equipment that valves work with: pumps, intakes and more.',
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: pageOpenGraph(TITLE, DESCRIPTION, '/equipment/'),
 };
 
 export default function EquipmentPage() {

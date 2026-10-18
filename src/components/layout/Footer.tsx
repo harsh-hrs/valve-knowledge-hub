@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { AUTHOR } from '@/lib/site';
 
 export function Footer() {
+  // pb-24 leaves room for the floating "Ask AI" button so it never covers the footer links
   return (
-    <footer className="w-full border-t border-white/5 bg-background py-8">
+    <footer className="w-full border-t border-white/5 bg-background pt-8 pb-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground text-center md:text-left">
           <div>

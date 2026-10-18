@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     siteName: `${SITE_NAME} by ${AUTHOR}`,
     title: `${SITE_NAME} by ${AUTHOR}`,
     description: DESCRIPTION,
-    url: SITE_URL,
   },
 };
 

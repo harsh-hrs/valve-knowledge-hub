@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="author" content="Harsh Raj Singh">
-<title>Raw Water Pumping Station 3D</title>
+<title>Raw Water Pumping Station — 3D model</title>
 <style>
 /* =====================================================================
    app.css — interactive VT pump viewer (inlined by tools/build.py)
@@ -8488,7 +8488,7 @@ const ST_CONTENT = {
 //   river=<EL m>   tour=N  tourplay=1   ui=0   theme=dark|light
 //   crane=x,z,hookY (mm)   cam=x,y,z&tgt=x,y,z (m)   fov=deg   manual=1
 // Automation API: window.stationApp = { setState, getState, select, setView, step, sim, ctx }
-// document.title becomes 'READY' after the first frame.
+// window.stationApp.ready becomes true after the first frame (manual=1 / ui=0 also set document.title to 'READY').
 // =====================================================================
 (function () {
   'use strict';
@@ -8550,7 +8550,6 @@ const ST_CONTENT = {
   function parseHash() { const o = {}; try { new URLSearchParams(location.hash.replace(/^#/, '')).forEach((v, k) => { o[k] = v; }); } catch (e) { /* ignore */ } return o; }
   const PARAMS = parseHash();
   const MANUAL = truthy(PARAMS.manual);
-  const AUTOMATION = MANUAL || PARAMS.ui === '0' || 'tour' in PARAMS || 'cam' in PARAMS;
   const HARNESS = MANUAL || PARAMS.ui === '0';   // screenshot harness: fixed resolution, readable drawing buffer
   const isMobile = () => window.innerWidth < 900;
 
@@ -10400,8 +10399,7 @@ const ST_CONTENT = {
     setTimeout(buildPickTrees, 600);
     const l = $('#loading'); if (l) l.classList.add('done');
     window.stationApp.ready = true;
-    document.title = 'READY';
-    if (!AUTOMATION) setTimeout(() => { document.title = 'Raw Water Pumping Station — 3D model'; }, 5000);
+    if (HARNESS) document.title = 'READY';   // visitors keep the page's own title
   }
 
   // ------------------------------------------------------------------

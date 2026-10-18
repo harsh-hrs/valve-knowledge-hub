@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="author" content="Harsh Raj Singh">
-<title>Vertical Turbine Pump 3D</title>
+<title>Vertical Turbine Pump — 3D model</title>
 <style>
 /* =====================================================================
    app.css — interactive VT pump viewer (inlined by tools/build.py)
@@ -4041,7 +4041,7 @@ const PUMP_DATA = {"drawing": {"title": "Vertical Turbine Pump — 9 stage", "pr
 //   tab=performance       info-panel tab when nothing is selected
 // Automation API: window.pumpApp = { setState, getState, select, setView,
 //   step, render, tour:{play,pause,goto,next,prev,end,steps,totalDuration}, parts }
-// document.title becomes 'READY' after the first frame has been rendered.
+// window.pumpApp.ready becomes true after the first frame (manual=1 / ui=0 also set document.title to 'READY').
 // =====================================================================
 (function () {
   'use strict';
@@ -4219,7 +4219,6 @@ const PUMP_DATA = {"drawing": {"title": "Vertical Turbine Pump — 9 stage", "pr
   }
   const PARAMS = parseHash();
   const MANUAL = truthy(PARAMS.manual);
-  const AUTOMATION = MANUAL || PARAMS.ui === '0' || 'tour' in PARAMS || 'cam' in PARAMS;
   const mapY = (y) => (!S.compact ? y : (y <= BB ? y + SH : (y >= BT ? y : BT)));
   const isMobile = () => window.innerWidth < 900;
 
@@ -6042,8 +6041,7 @@ const PUMP_DATA = {"drawing": {"title": "Vertical Turbine Pump — 9 stage", "pr
     firstFrame = true;
     const l = $('#loading'); if (l) l.classList.add('done');
     window.pumpApp.ready = true;
-    document.title = 'READY';
-    if (!AUTOMATION) setTimeout(() => { document.title = 'Vertical Turbine Pump — 3D model'; }, 5000);
+    if (MANUAL || PARAMS.ui === '0') document.title = 'READY';   // visitors keep the page's own title
   }
 
   // ------------------------------------------------------------------

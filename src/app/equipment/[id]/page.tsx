@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { EQUIPMENT } from '@/lib/equipment-data';
 import { EmbeddedViewer } from '@/components/equipment/EmbeddedViewer';
-import { AUTHOR } from '@/lib/site';
+import { AUTHOR, pageOpenGraph } from '@/lib/site';
 import { ArrowLeft, MousePointerClick, GraduationCap, Info } from 'lucide-react';
 
 interface PageProps {
@@ -17,8 +17,12 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const eq = EQUIPMENT[(await params).id];
-  return eq ? { title: `${eq.name} 3D Model - ValveHub`, description: `${eq.tagline} 3D model by ${AUTHOR}.`, authors: [{ name: AUTHOR }] } : {};
+  const { id } = await params;
+  const eq = EQUIPMENT[id];
+  if (!eq) return {};
+  const title = `${eq.name} 3D Model - ValveHub`;
+  const description = `${eq.tagline} 3D model by ${AUTHOR}.`;
+  return { title, description, authors: [{ name: AUTHOR }], openGraph: pageOpenGraph(title, description, `/equipment/${id}/`) };
 }
 
 export default async function EquipmentDetailPage({ params }: PageProps) {

@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="author" content="Harsh Raj Singh">
-<title>Raw Water Intake Site 3D</title>
+<title>Raw Water Intake Site — 3D world</title>
 <style>
 /* =====================================================================
    app.css — interactive VT pump viewer (inlined by tools/build.py)
@@ -836,7 +836,7 @@ body.walking .footer .foot-hint { visibility: hidden; }
 
 <div id="loading" class="loading" role="status">
   <div class="spinner" aria-hidden="true"></div>
-  <div class="loading-txt">Building the pumping station…</div>
+  <div class="loading-txt">Building the intake site…</div>
   <div id="loadingNote" class="loading-note"></div>
 </div>
 
@@ -15608,6 +15608,7 @@ function createSiteWorld(A) {
     A.controls.enabled = !W.walking;
     mm.hidden = !W.walking;
     joy.hidden = !(W.walking && ('ontouchstart' in window));
+    placeJoy();
     if (W.walking) {
       W.prevBuilding = A.S.building; A.setBuilding('full');
       A.camera.fov = 70; A.camera.updateProjectionMatrix();
@@ -15645,6 +15646,21 @@ function createSiteWorld(A) {
   // on-screen joystick (touch)
   const joy = document.createElement('div'); joy.className = 'joystick'; joy.hidden = true; joy.innerHTML = '<i></i>'; document.body.appendChild(joy);
   const knob = joy.querySelector('i');
+  // keep it just above the bottom dock (toolbar, run note, tour card), below the view chips, and off the HRS seal
+  const dock = document.querySelector('.bottom-dock');
+  function placeJoy() {
+    if (joy.hidden) return;
+    const H = window.innerHeight, size = joy.offsetWidth || 120, LEFT = 24;
+    const chips = document.querySelector('#viewbar .chips');
+    const minTop = (chips ? chips.getBoundingClientRect().bottom : 60) + 8;
+    const top = Math.max(minTop, (dock ? dock.getBoundingClientRect().top : H) - 12 - size);
+    joy.style.bottom = Math.max(8, H - top - size) + 'px';
+    const seal = document.querySelector('.hrs-sign'), s = seal && seal.getBoundingClientRect();
+    const onSeal = s && s.width && s.left < LEFT + size && s.right > LEFT && s.top < top + size && s.bottom > top;
+    joy.style.left = onSeal ? Math.round(s.right + 12) + 'px' : '';
+  }
+  if (dock && window.ResizeObserver) new ResizeObserver(placeJoy).observe(dock);
+  window.addEventListener('resize', placeJoy);
   let joyId = null;
   joy.addEventListener('pointerdown', (e) => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); e.stopPropagation(); });
   joy.addEventListener('pointermove', (e) => {
@@ -15773,7 +15789,7 @@ function createSiteWorld(A) {
 //   river=<EL m>   tour=N  tourplay=1   ui=0   theme=dark|light
 //   crane=x,z,hookY (mm)   cam=x,y,z&tgt=x,y,z (m)   fov=deg   manual=1
 // Automation API: window.stationApp = { setState, getState, select, setView, step, sim, ctx }
-// document.title becomes 'READY' after the first frame.
+// window.stationApp.ready becomes true after the first frame (manual=1 / ui=0 also set document.title to 'READY').
 // =====================================================================
 (function () {
   'use strict';
@@ -15835,7 +15851,6 @@ function createSiteWorld(A) {
   function parseHash() { const o = {}; try { new URLSearchParams(location.hash.replace(/^#/, '')).forEach((v, k) => { o[k] = v; }); } catch (e) { /* ignore */ } return o; }
   const PARAMS = parseHash();
   const MANUAL = truthy(PARAMS.manual);
-  const AUTOMATION = MANUAL || PARAMS.ui === '0' || 'tour' in PARAMS || 'cam' in PARAMS;
   const HARNESS = MANUAL || PARAMS.ui === '0';   // screenshot harness: fixed resolution, readable drawing buffer
   const isMobile = () => window.innerWidth < 900;
 
@@ -17685,8 +17700,7 @@ function createSiteWorld(A) {
     setTimeout(buildPickTrees, 600);
     const l = $('#loading'); if (l) l.classList.add('done');
     window.stationApp.ready = true;
-    document.title = 'READY';
-    if (!AUTOMATION) setTimeout(() => { document.title = 'Raw Water Pumping Station — 3D model'; }, 5000);
+    if (HARNESS) document.title = 'READY';   // visitors keep the page's own title
   }
 
   // ------------------------------------------------------------------
